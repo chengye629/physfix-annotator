@@ -7,8 +7,8 @@
   <meta name="description" content="PhysFixBench 物理视频标注工作台：只收录明显、客观、可复现的物理问题。">
   <title>PhysFixBench 视频标注</title>
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.js"></script>
+  <link rel="stylesheet" href="./style.css?v=2-media">
+  <script type="module" src="./app.js?v=2-media"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳至标注区</a>
@@ -42,8 +42,9 @@
         <div id="workspace" class="workspace" hidden>
           <section class="video-card card">
             <div class="card-top"><div class="sample-title"><span class="sample-index" id="sample-index">001</span><div><h2 id="sample-id">T1_01334</h2><span class="muted" id="sample-position">第 1 / 300 条</span></div></div><div class="sample-nav"><button class="icon-button" id="prev-button" title="上一条（Alt+←）" aria-label="上一条">←</button><button class="icon-button" id="next-button" title="下一条（Alt+→）" aria-label="下一条">→</button></div></div>
-            <div class="video-stage"><video id="video" controls playsinline preload="metadata" aria-label="待标注的生成视频"></video><div class="video-error" id="video-error" hidden><strong>视频暂时无法加载</strong><p>可尝试重新加载或在源站打开；无法观察时请标记「无法播放」。</p><button class="button" id="retry-video">重新加载</button></div></div>
+            <div class="video-stage"><video id="video" controls playsinline preload="auto" aria-label="待标注的生成视频"></video><div class="video-error" id="video-error" hidden><strong>视频暂时无法加载</strong><p>可尝试重新加载或切换下方线路；无法观察时请标记「无法播放」。</p><button class="button" id="retry-video">重新加载</button></div></div>
             <div class="video-tools"><div class="frame-tools"><button id="frame-back" class="tool-button" title="后退一帧（,）">Ⅰ←</button><button id="frame-forward" class="tool-button" title="前进一帧（.）">→Ⅰ</button><label class="compact-select"><span class="sr-only">步进帧率</span><select id="fps"><option value="24">24 fps</option><option value="30">30 fps</option><option value="60">60 fps</option></select></label></div><span class="video-time" id="video-time">0.00 / — s</span><label class="compact-select"><span class="sr-only">播放速度</span><select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label></div>
+            <div class="video-delivery"><span id="video-load-status" role="status">正在连接视频…</span><label><span class="sr-only">视频线路</span><select id="video-source"><option value="auto">自动线路</option><option value="site">网站线路</option><option value="original">HF 原站</option></select></label></div>
             <div class="frame-hint">按设定帧率步进；请结合慢放和原速播放复核。</div>
             <div class="sample-details"><span class="eyebrow">样本信息</span><div class="tags"><span class="tag" id="generator"></span><span class="tag neutral" id="source-category"></span></div><div class="detail-row"><span>内容类型</span><strong id="primitive"></strong></div><div class="detail-row"><span>场景领域</span><strong id="domain"></strong></div><div class="detail-row"><span>源数据难度</span><strong id="obviousness"></strong></div><div class="source-links"><a id="source-video" target="_blank" rel="noopener noreferrer">打开原视频 ↗</a><button class="text-button" id="copy-link">复制任务链接</button></div></div>
             <details class="reference"><summary>参考草稿 <span>待人工复核，请先独立观察</span></summary><div class="reference-body"><p class="muted">以下来自源数据，可能包含细微或不成立的判断，不代表已通过本网站标准。</p><h3>草稿中的问题</h3><div id="draft-problems"></div><h3>建议正确表现</h3><div id="draft-expected"></div><h3>保持不变</h3><p id="draft-keep"></p><details><summary>查看原始英文标注</summary><p id="original-annotation"></p></details><button class="button" id="use-draft">将草稿文字填入表单</button></div></details>

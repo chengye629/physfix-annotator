@@ -2,7 +2,15 @@
 
 基于 PhysFixBench / Physion-300 的中文视频标注网站。只收录**明显、客观、可重复观察的物理问题**，不确定和模棱两可的现象不进入有效问题集。
 
-纯静态网站，没有安装依赖、登录或数据库要求。支持 GitHub Pages，视频由原始 Hugging Face 地址播放，不复制视频文件。使用者需要能访问 GitHub Pages 与 Hugging Face。
+纯静态网站，没有安装依赖、登录或数据库要求。支持 GitHub Pages，优先播放网站同域的原视频镜像，保留 Hugging Face 原站作为备用线路。
+
+## 视频加载
+
+- `videos/` 保存原视频文件，按上游 SHA-256 校验，逐字节相同，没有压缩、降分辨率、抽帧或重编码。镜像索引见 `data/video-manifest.json`。
+- 当前视频使用 `preload="auto"` 渐进加载；当前视频可连续播放后才后台预载下一条未完成任务。
+- 已预载的视频使用内存缓存直接播放，最多保留 3 条、总计 40 MiB；同时利用浏览器 HTTP 缓存。切换任务会中止未完成的预载，避免与当前播放争抢带宽。浏览器启用节省流量时不自动预载。
+- 「自动线路」优先同域镜像，连接失败或持续缓冲时尝试原站。也可以手动切换「网站线路 / HF 原站」。同一条切换线路会保留播放位置与速度。
+- 缓存只包含视频；原有标注员身份、草稿和已完成标注的保存格式不变。
 
 ## 标注流程
 
@@ -37,7 +45,7 @@
 ```sh
 node scripts/serve.mjs
 # 打开 http://127.0.0.1:4173
-node --test tests/core.test.mjs
+node --test tests/core.test.mjs tests/video-delivery.test.mjs
 ```
 
 请通过 HTTP 服务访问，不要直接双击 HTML，因为浏览器可能限制加载数据文件。
@@ -58,4 +66,4 @@ node --test tests/core.test.mjs
 - 视频：[HuggingFriends/PhysFixBench](https://huggingface.co/datasets/HuggingFriends/PhysFixBench/tree/main/videos)，300 个视频路径逐一与索引核对。网络或源站访问策略变化可能影响播放，网站提供单独的播放故障判定。
 - 交互流程参考：[MLLM-as-Embodied-World-Judge-Annotation](https://github.com/SiyuanMaCS/MLLM-as-Embodied-World-Judge-Annotation)：标注员身份、视频观察、证据填写、保存后下一条和个人进度。本仓库界面和逻辑独立实现，没有连接或复用其在线后端。
 
-上游 README 说明视频源自 Physion-Eval，受 **Custom Research Use Only License** 限制，仅限非商业研究与评测；结构化中文源标注遵循 PhysFixBench 的研究用途约束。公开部署界面不改变源数据的使用限制。视频仍由原始数据托管方提供。
+上游 README 说明视频源自 Physion-Eval，受 **Custom Research Use Only License** 限制，仅限非商业研究与评测；结构化中文源标注遵循 PhysFixBench 的研究用途约束。网站上的原画镜像同样只用于非商业研究与评测，来源与逐文件校验值保留在镜像索引中；公开部署不改变源数据的使用限制。

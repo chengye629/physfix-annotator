@@ -3,5 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test tests/core.test.mjs", "start": "node scripts/serve.mjs" }
+  "scripts": { "test": "node --test tests/core.test.mjs tests/video-delivery.test.mjs", "start": "node scripts/serve.mjs" }
 }

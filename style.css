@@ -12,3 +12,4 @@ dialog{border:1px solid var(--line);border-radius:16px;padding:30px;max-width:45
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 
 #draft-problems,#draft-expected{white-space:pre-line}
+.video-delivery{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 18px;background:#fbfcfe;border-bottom:1px solid #f0f2f6;font-size:11px;color:#8b9ab0}.video-delivery select{font-size:11px;padding:3px 7px;border-color:#e7edf6;background:white;max-width:110px}.video-delivery [data-state=ready]{color:#388e70}.video-delivery [data-state=error],.video-delivery [data-state=slow]{color:#b48a42}
