@@ -11,6 +11,7 @@
 - 已预载的视频使用内存缓存直接播放，最多保留 3 条、总计 40 MiB；同时利用浏览器 HTTP 缓存。切换任务会中止未完成的预载，避免与当前播放争抢带宽。浏览器启用节省流量时不自动预载。
 - 「自动线路」优先同域镜像，连接失败或持续缓冲时尝试原站。也可以手动切换「网站线路 / HF 原站」。同一条切换线路会保留播放位置与速度。
 - 缓存只包含视频；原有标注员身份、草稿和已完成标注的保存格式不变。
+- 初始任务索引优先加载体积更小的 gzip 文件，并在浏览器解压；不支持的浏览器自动回退原始 JSONL。
 
 ## 标注流程
 
@@ -45,7 +46,7 @@
 ```sh
 node scripts/serve.mjs
 # 打开 http://127.0.0.1:4173
-node --test tests/core.test.mjs tests/video-delivery.test.mjs
+node --test tests/core.test.mjs tests/video-delivery.test.mjs tests/dataset-loader.test.mjs
 ```
 
 请通过 HTTP 服务访问，不要直接双击 HTML，因为浏览器可能限制加载数据文件。

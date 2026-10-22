@@ -112,6 +112,7 @@ export class VideoDelivery {
 
   fallback(epoch) {
     if (epoch !== this.epoch || !this.active) return;
+    this.cancelWarmup();
     this.clearWatchdog();
     const active = this.active;
     const target = active.targets[active.index];
@@ -167,7 +168,7 @@ export class VideoDelivery {
       if (String.fromCharCode(...signature) !== 'ftyp') return;
       if (!blob.type.startsWith('video/')) blob = new Blob([blob],{type:'video/mp4'});
       this.remember(target.url,blob);
-      if (this.cache.has(target.url)) this.emit('ready','原画已就绪 · 下一条已预加载');
+      if (this.cache.has(target.url) && !this.watchdog) this.emit('ready','原画已就绪 · 下一条已预加载');
     } catch { /* Prefetch is optional; foreground streaming remains available. */ }
     finally {
       clearTimeout(timer);
