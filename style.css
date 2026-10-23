@@ -27,3 +27,20 @@ dialog{width:min(1000px,calc(100vw - 36px));max-height:88dvh;overflow:auto;paddi
 @media(max-width:800px){header{height:auto;min-height:72px;padding:13px 16px;gap:12px;flex-wrap:wrap;position:static}header>strong{font-size:16px}.header-actions{margin-left:auto}header label{font-size:12px}#progress{font-size:12px}.layout{grid-template-columns:170px minmax(0,1fr)}aside{top:0;height:100dvh;padding:16px 10px}main{padding:16px}.annotation-panel{padding:16px}.video-tools{padding:11px 13px}.sample-heading strong{width:100%}.issue{padding:13px}.submission-actions button{font-size:13px}}
 @media(max-width:600px){header{padding:12px 14px;gap:10px}header>strong{margin-right:auto}header label{order:2}.header-actions{width:100%;order:3;margin:0;gap:8px}.header-actions button{flex:1}.layout{display:block}aside{position:static;height:auto;display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:12px 14px;border-right:0;border-bottom:1px solid var(--line)}aside>input{grid-column:1/-1;margin:0}#queue{grid-column:1/-1;display:flex;gap:5px;max-height:46px;overflow:auto;padding:0 0 2px}.queue-item{width:auto;flex-shrink:0;gap:7px;min-height:33px;font-size:12px;margin:0;background:#f8fafd}.queue-item>span:first-child{max-width:165px}main{padding:14px 10px}#workspace{gap:15px}.video-panel,.annotation-panel{border-radius:11px}.annotation-panel{padding:16px 13px}.sample-heading{padding:13px;gap:7px}.sample-heading strong{width:auto;font-size:14px;max-width:100%}#sample-position{font-size:11px}video{max-height:44vh}.issue{padding:13px 12px;border-radius:9px}.issue label{font-size:13px}.issue label input,.issue label textarea{font-size:16px}.issue-header{gap:4px}.issue-header strong{font-size:12px}.issue-header button{font-size:12px}.submission-actions button{padding:10px;font-size:12px}.submission-actions .primary{font-size:14px}.annotation-heading>strong{font-size:15px}.video-tools{gap:6px}.video-tools button,.video-tools select{font-size:12px}#video-time{font-size:11px}dialog{padding:18px}.merge-tools{gap:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
+
+/* Task progress and collected-review workflow. */
+#progress{display:grid;gap:4px;min-width:124px;background:transparent;padding:0}
+#task-progress{display:block;width:100%;height:4px;border:0;border-radius:3px;overflow:hidden;accent-color:var(--accent);background:#e7edf6}
+#task-progress::-webkit-progress-bar{background:#e7edf6;border-radius:3px}
+#task-progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
+#task-progress::-moz-progress-bar{background:var(--accent);border-radius:3px}
+.queue-actions{display:flex;gap:6px;min-width:0}
+.queue-actions button{flex:1;min-width:0;min-height:32px;padding:5px 6px;font-size:12px;background:#f8fafd;white-space:nowrap}
+.queue-item .result[data-verdict=draft]{background:#eaf0ff;color:#4b63bd;font-size:19px}
+#annotator-progress{margin:0 0 16px}
+#annotator-progress>summary{font-size:13px;padding:4px 0 10px}
+#annotator-progress table{min-width:480px}
+#merge-dialog .task-link{background:transparent;border:0;min-height:0;padding:0;color:#4563b9;text-align:left;overflow-wrap:anywhere;max-width:220px}
+#merge-dialog .task-link:hover{text-decoration:underline;background:transparent}
+#merge-filter{max-width:180px}
+@media(max-width:600px){.queue-actions{grid-column:1/-1}.queue-actions button{font-size:13px;min-height:34px}#progress{min-width:115px}#merge-dialog .merge-tools>label{font-size:12px}}

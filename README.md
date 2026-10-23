@@ -30,3 +30,17 @@ npm test
 推送 main 后由 GitHub Pages 发布，根目录 `.nojekyll`。任务链接支持 `?group=1` 到 `?group=6`、`?sample=T1_01334`。
 
 数据来自 [PhysFixBench](https://github.com/SiyuanMaCS/PhysFixBench)（源提交 fcef4a429c9061fa36db64f3213b8fbc37b121bf），视频来自 [HuggingFriends/PhysFixBench](https://huggingface.co/datasets/HuggingFriends/PhysFixBench/tree/main/videos)，交互最初参考 [MLLM-as-Embodied-World-Judge-Annotation](https://github.com/SiyuanMaCS/MLLM-as-Embodied-World-Judge-Annotation)。原始 300 行 JSONL 保持不变。上游视频源自 Physion-Eval，遵循 Custom Research Use Only License，仅用于非商业研究与评测；公开镜像不改变上游许可。
+
+
+## 参考 PhyGround 的工作流补充
+
+参考 [PhyGround human_eval](https://github.com/NU-World-Model-Embodied-AI/PhyGround/tree/main/evals/human_eval) 的任务状态、批次进度、覆盖率和分歧复核设计，独立实现了静态版本。其 [app.py](https://github.com/NU-World-Model-Embodied-AI/PhyGround/blob/main/evals/human_eval/app.py)、[db.py](https://github.com/NU-World-Model-Embodied-AI/PhyGround/blob/main/evals/human_eval/db.py)、[分组评分页](https://github.com/NU-World-Model-Embodied-AI/PhyGround/blob/main/evals/human_eval/templates/rate_compare.html) 面向 Flask、SQLite 和多视频量表评分；本网站继续使用三字段修复卡片与三种提交结果。
+
+- 未编辑的预标注与人工编辑后的草稿分开；可筛选草稿、通过、两类拒绝或全部未提交任务。
+- 每组显示本机提交进度，可继续第一条未完成任务，或复制分组链接分配给同事。显式分组链接优先于浏览器之前打开的其他分组，单样本链接优先定位该样本。
+- 保存失败时保留当前视频，允许导出内存中的备份，不自动跳下一条。
+- 汇总以本次导入的个人备份为依据，展示独立标注人进度，以及全部 300 条的覆盖、待补标和分歧；这些不是团队实时在线统计。汇总导入仍保留在当前页面会话，刷新后需重新导入原始 JSON。
+- 可筛选待补标、分歧、一致通过或一致拒绝。点击视频编号进入自己的预标注复核，其他人的文字不会自动覆盖本机卡片。
+- 全部汇总与一致通过导出增加 `coverage`、`annotators`。`review_queue` 导出列出未标注、人数不足、存在分歧的记录，包含缺少人数、是否需仲裁与已参与者 ID，不包含他人的问题描述。
+
+这些功能位于 `workflow.js`，保留原个人 JSON schema v2 与 v1 导入兼容性。网页继续无需账户、服务器数据库或额外服务，个人结果仍通过 JSON 集中回收。
