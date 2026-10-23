@@ -19,12 +19,12 @@ function nextWarmId(){const selected=selectedTasks(),position=selected.findIndex
 const delivery=new VideoDelivery(video,{getNextId:nextWarmId,onStatus:({kind,text})=>{$('#video-load-status').textContent=kind==='ready'?(text.includes('下一条')?'下一条已预加载':'已就绪'):text;}});
 delivery.mode=['auto','site','original'].includes(state.video_source)?state.video_source:'auto';$('#video-source').value=delivery.mode;
 const segment=new SegmentPlayer(video,{onActiveChange:index=>{$$('.issue').forEach(el=>el.classList.toggle('active',index!==null&&Number(el.dataset.issue)===index));},onError:toast});
-function draftStatus(){const a=active();$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[a.verdict]||''}`:'已保存';}
+function draftStatus(){const a=active();document.getElementById('draft-status').dataset.status=a?.status||'draft';$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[a.verdict]||''}`:'已保存';}
 function renderQueue(){
   const query=$('#search').value.trim().toLowerCase(),filter=$('#status-filter').value;
   const selected=selectedTasks(),visible=selected.filter(t=>{const done=state.annotations[t.record_id]?.status==='submitted';return shortId(t.record_id).toLowerCase().includes(query)&&(filter==='all'||(filter==='submitted'&&done)||(filter==='pending'&&!done));});
   const scroll=$('#queue').scrollTop;
-  $('#queue').innerHTML=visible.map(t=>{const a=state.annotations[t.record_id],index=tasks.indexOf(t),done=a?.status==='submitted';return `<button class="queue-item ${index===currentIndex?'active':''}" data-index="${index}" ${index===currentIndex?'aria-current="true"':''} title="${done?h(VERDICTS[a.verdict]):'未提交'}"><span>${index+1}. ${h(shortId(t.record_id))}</span>${done?`<span class="result">${a.verdict==='pass'?'✓':a.verdict==='reject_poor_quality'?'差':'×'}</span>`:''}</button>`;}).join('')||'无匹配任务';
+  $('#queue').innerHTML=visible.map(t=>{const a=state.annotations[t.record_id],index=tasks.indexOf(t),done=a?.status==='submitted';return `<button class="queue-item ${index===currentIndex?'active':''}" data-index="${index}" ${index===currentIndex?'aria-current="true"':''} title="${done?h(VERDICTS[a.verdict]):'未提交'}"><span>${index+1}. ${h(shortId(t.record_id))}</span>${done?`<span class="result" data-verdict="${h(a.verdict)}">${a.verdict==='pass'?'✓':a.verdict==='reject_poor_quality'?'差':'×'}</span>`:''}</button>`;}).join('')||'无匹配任务';
   $('#queue').scrollTop=scroll;
   $('#progress').textContent=`已提交 ${selected.filter(t=>state.annotations[t.record_id]?.status==='submitted').length} / ${selected.length}`;
 }
