@@ -1,82 +1,48 @@
-export const DATASET = 'physfixbench-physion300';
-export const SCHEMA_VERSION = 1;
-export const HF_BASE = 'https://huggingface.co/datasets/HuggingFriends/PhysFixBench/resolve/main/videos/';
-export const CATEGORIES = { temporal_causal:'时序与因果', persistence_identity:'物体永存与同一性', motion_force:'力与运动', material_state:'材质与状态', contact_interaction:'接触与交互', geometry_structure:'几何与碰撞', other:'其他物理问题' };
-export const PRIMITIVES = { articulation_open_close:'开合操作', pour_flow:'倾倒与流动', pick_place_transfer:'拿取与转移', deformation_state_change:'形变与状态变化', body_motion:'肢体运动', other_multistep:'多步操作', collision_impact:'碰撞与冲击', throw_projectile:'抛射运动' };
-export const DOMAINS = { fluid_thermal_optical_phenomena:'流体 / 热 / 光', human_animal_body_motion:'人 / 动物肢体', rigid_object_dynamics:'刚体动力学', deformable_materials:'可变形材料', tool_machine_operation:'工具与机械' };
-export const VERDICTS = { obvious:'明确有物理问题', none:'无明显物理问题', unsure:'不确定', unplayable:'无法播放' };
-const text = (v, max=4000) => typeof v === 'string' ? v.slice(0,max) : '';
-export const shortId = id => id.split('::').at(-1);
-export const videoUrl = id => HF_BASE + encodeURIComponent(shortId(id)) + '.mp4';
-export const escapeHTML = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function emptyIssue(category='') { return {category,start:'',end:'',problem:'',expected:''}; }
-export function createDraft(recordId) { return {record_id:recordId,status:'draft',verdict:'',issues:[emptyIssue()],keep:'',notes:'',checks:{visible:false,objective:false,unambiguous:false},duration:null,revision:0,updated_at:new Date().toISOString()}; }
-export function buildPrompt(annotation) {
-  const issues=annotation.issues || [];
-  return `【存在的问题】\n${issues.map((v,i)=>`${i+1}. 第${v.start || '0'}s–${v.end || '0'}s：${v.problem}`).join('\n')}\n\n【应修改为】\n${issues.map((v,i)=>`${i+1}. ${v.expected}`).join('\n')}\n\n请在保持${annotation.keep || '其余正常内容'}不变的前提下，修正上述物理问题并重新生成视频。`;
+export const DATASET='physfixbench-physion300';
+export const SCHEMA_VERSION=2;
+export const HF_BASE='https://huggingface.co/datasets/HuggingFriends/PhysFixBench/resolve/main/videos/';
+export const VERDICTS={pass:'通过',reject_no_clear_issue:'拒绝：没有明确、无争议的物理问题',reject_poor_quality:'拒绝：整体质量太差，物理问题过多'};
+export const shortId=id=>id.split('::').at(-1);
+export const videoUrl=id=>HF_BASE+encodeURIComponent(shortId(id))+'.mp4';
+export const escapeHTML=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const text=(v,max=4000)=>typeof v==='string'?v.slice(0,max):'';
+export const emptyIssue=()=>({timestamp:'',problem:'',expected:''});
+function seconds(value){if(!/^\d+(?::\d{1,2}){0,2}(?:\.\d+)?$/.test(value))return NaN;const parts=value.split(':').map(Number);if(parts.length>1&&parts.slice(1).some(n=>n>=60))return NaN;return parts.reduce((sum,n)=>sum*60+n,0);}
+export function parseTimestamp(value){const clean=String(value??'').trim().replace(/^第\s*/,'').replace(/(?:秒|s|左右)/gi,'').replace(/\s/g,'');const parts=clean.split(/[–—−~～\-至]/);if(!clean||parts.length>2||parts.some(p=>!p))return null;const start=seconds(parts[0]),end=parts.length===2?seconds(parts[1]):start;if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<start||(parts.length===2&&end===start))return null;return {start,end,point:parts.length===1};}
+export function playbackRange(timestamp,duration){const t=parseTimestamp(timestamp);if(!t||!Number.isFinite(duration)||duration<=0||t.end>duration+0.15||t.start>=duration)return null;return t.point?{start:Math.max(0,t.start-0.5),end:Math.min(duration,t.end+0.75)}:{start:t.start,end:Math.min(duration,t.end)};}
+export function seedIssues(task){
+  const prefix=/^第?\s*(\d+(?:\.\d+)?)\s*s?\s*(?:([–—−~\-至])\s*(\d+(?:\.\d+)?)\s*s?|s)?\s*(?:左右)?\s*[：:]\s*/i;
+  const issues=(task.fix_problems||[]).map((problem,i)=>{const m=problem.match(prefix);return {timestamp:m?(m[3]?`${m[1]}–${m[3]}`:m[1]):'',problem:m?problem.slice(m[0].length):problem,expected:task.fix_expected?.[i]||''};});return issues.length?issues:[emptyIssue()];
 }
-export function validateAnnotation(a) {
-  const errors=[];
-  if (!a || !Object.hasOwn(VERDICTS,a.verdict)) return ['请先选择一个物理问题判定。'];
-  if (a.verdict === 'obvious') {
-    if (!Array.isArray(a.issues) || !a.issues.length || a.issues.length>12) errors.push('请记录 1–12 个明确问题。');
-    for (const [i,v] of (Array.isArray(a.issues)?a.issues:[]).entries()) {
-      const n=`问题 ${i+1}：`;
-      if (!Object.hasOwn(CATEGORIES,v.category)) errors.push(n+'请选择物理问题类别。');
-      const validTime = v.start !== '' && v.end !== '' && Number.isFinite(Number(v.start)) && Number.isFinite(Number(v.end)) && Number(v.start)>=0 && Number(v.end)>Number(v.start);
-      if (!validTime) errors.push(n+'请填写有效起止秒数，结束时间须大于开始时间。');
-      if (validTime && (!Number.isFinite(a.duration) || a.duration <= 0)) errors.push(n+'请先成功加载视频，或恢复包含视频时长的备份，再确认时间范围。');
-      if (validTime && Number.isFinite(a.duration) && Number(v.end)>a.duration+0.15) errors.push(n+'结束时间超出视频时长。');
-      if (text(v.problem).trim().length<6) errors.push(n+'可见异常至少填写 6 个字符，描述具体物体与变化。');
-      if (text(v.expected).trim().length<6) errors.push(n+'正确表现至少填写 6 个字符。');
-    }
-    if (text(a.keep).trim().length<4) errors.push('请填写修复时保持不变的内容（至少 4 个字符）。');
-    if (!a.checks?.visible || !a.checks?.objective || !a.checks?.unambiguous) errors.push('只有满足全部三项收录标准的明显、客观问题才能保存；否则请选择「不确定」。');
-  } else if (text(a.notes).trim().length<6) errors.push('请说明判定依据或无法播放的情况（至少 6 个字符）。');
-  return errors;
+export function createDraft(recordId,task){return {record_id:recordId,status:'draft',verdict:'',issues:task?seedIssues(task):[emptyIssue()],keep:task?.fix_keep||'',duration:null,revision:0,updated_at:new Date().toISOString()};}
+export function buildPrompt(a){const issues=a.issues||[];return `【存在的问题】\n${issues.map((v,i)=>`${i+1}. 第${v.timestamp}s：${v.problem}`).join('\n')}\n\n【应修改为】\n${issues.map((v,i)=>`${i+1}. ${v.expected}`).join('\n')}\n\n请在保持${a.keep||'其余正常内容'}不变的前提下，修正上述物理问题并重新生成视频。`;}
+export function validateAnnotation(a){
+  if(!a||!Object.hasOwn(VERDICTS,a.verdict))return ['请选择一个提交结果。'];if(a.verdict!=='pass')return [];
+  const errors=[];if(!Array.isArray(a.issues)||!a.issues.length||a.issues.length>50)errors.push('请保留至少一张问题卡片。');
+  if(!Number.isFinite(a.duration)||a.duration<=0)errors.push('请先成功加载视频。');
+  for(const [i,v] of (Array.isArray(a.issues)?a.issues:[]).entries()){const t=parseTimestamp(v.timestamp);if(!t)errors.push(`问题 ${i+1}：时间戳无效，例如 1.0–3.5 或 2.0。`);else if(Number.isFinite(a.duration)&&(t.start>=a.duration||t.end>a.duration+0.15))errors.push(`问题 ${i+1}：时间戳超出视频时长。`);if(!text(v.problem).trim())errors.push(`问题 ${i+1}：请填写物理问题描述。`);if(!text(v.expected).trim())errors.push(`问题 ${i+1}：请填写修改后状态的描述。`);}return errors;
 }
-export function isEffective(a) { return a?.status==='submitted' && a.verdict==='obvious' && validateAnnotation(a).length===0; }
-export function makeExport(state) {
-  return {schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'personal_backup',exported_at:new Date().toISOString(),annotator:{id:state.annotator.id,name:state.annotator.name},annotations:Object.values(state.annotations).map(a=>({...a,fixing_prompt_zh:a.verdict==='obvious'?buildPrompt(a):null}))};
+export const isEffective=a=>a?.status==='submitted'&&a.verdict==='pass'&&!validateAnnotation(a).length;
+// Preserve edited cards. Old uncertain/unplayable votes require a fresh decision.
+export function upgradeAnnotation(item,task,legacyVersion=false){
+  if(!item||!['draft','submitted'].includes(item.status)||!Array.isArray(item.issues)||item.issues.length>50)throw new Error('记录格式无效。');
+  const previous=item.verdict||'',legacy=legacyVersion||['obvious','none','unsure','unplayable'].includes(previous);let verdict=previous,status=item.status;
+  if(legacy){verdict={obvious:'pass',none:'reject_no_clear_issue',unsure:'',unplayable:'','':''}[previous];if(verdict===undefined)throw new Error('备份包含无效判定。');if(['unsure','unplayable'].includes(previous))status='draft';}
+  if(verdict!==''&&!Object.hasOwn(VERDICTS,verdict))throw new Error('备份包含无效判定。');
+  let issues=item.issues.map(v=>{const start=typeof v?.start==='number'?String(v.start):text(v?.start,30),end=typeof v?.end==='number'?String(v.end):text(v?.end,30);return {timestamp:typeof v?.timestamp==='string'?text(v.timestamp,80):start&&end?(start===end?start:`${start}–${end}`):start,problem:text(v?.problem),expected:text(v?.expected)};});
+  if(legacy&&!previous&&issues.length&&issues.every(v=>!v.timestamp&&!v.problem&&!v.expected)&&task)issues=seedIssues(task);
+  return {record_id:item.record_id,status,verdict,issues,keep:text(item.keep,1500),duration:typeof item.duration==='number'&&Number.isFinite(item.duration)&&item.duration>0?item.duration:null,revision:Number.isSafeInteger(item.revision)&&item.revision>=0?item.revision:0,updated_at:typeof item.updated_at==='string'&&Number.isFinite(Date.parse(item.updated_at))?new Date(item.updated_at).toISOString():'1970-01-01T00:00:00.000Z',...(legacy?{legacy:{verdict:previous,status:item.status,notes:text(item.notes,2000),checks:item.checks||{}}}:item.legacy?{legacy:item.legacy}:{})};
 }
-export function normalizeExport(raw, knownIds) {
-  if (!raw || raw.schema_version!==SCHEMA_VERSION || raw.dataset!==DATASET || raw.export_type!=='personal_backup') throw new Error('不是受支持的 PhysFix 个人备份。请导入「导出备份」生成的 JSON。');
-  if (!raw.annotator || !text(raw.annotator.id,120).trim() || !text(raw.annotator.name,32).trim()) throw new Error('备份缺少有效的标注员身份或昵称。');
-  if (!Array.isArray(raw.annotations) || raw.annotations.length>300) throw new Error('备份记录格式不正确或超过 300 条。');
-  const seen=new Set(); const annotations=[];
-  for (const item of raw.annotations) {
-    if (!item || !knownIds.has(item.record_id) || seen.has(item.record_id)) throw new Error('备份包含未知或重复样本，未导入。');
-    seen.add(item.record_id);
-    if (!['draft','submitted'].includes(item.status)) throw new Error('备份包含无效记录状态。');
-    if (item.verdict!=='' && !Object.hasOwn(VERDICTS,item.verdict)) throw new Error('备份包含无效判定。');
-    if (!Array.isArray(item.issues) || item.issues.length>12) throw new Error('备份问题列表格式无效。');
-    const a={record_id:item.record_id,status:item.status,verdict:item.verdict,issues:item.issues.map(v=>({category:text(v?.category,60),start:typeof v?.start==='number'?String(v.start):text(v?.start,30),end:typeof v?.end==='number'?String(v.end):text(v?.end,30),problem:text(v?.problem,2000),expected:text(v?.expected,2000)})),keep:text(item.keep,1500),notes:text(item.notes,2000),checks:{visible:item.checks?.visible===true,objective:item.checks?.objective===true,unambiguous:item.checks?.unambiguous===true},duration:typeof item.duration==='number'&&Number.isFinite(item.duration)&&item.duration>0?item.duration:null,revision:Number.isSafeInteger(item.revision)&&item.revision>=0?item.revision:0,updated_at:typeof item.updated_at==='string'&&Number.isFinite(Date.parse(item.updated_at))?new Date(item.updated_at).toISOString():'1970-01-01T00:00:00.000Z'};
-    if (a.status==='submitted' && validateAnnotation(a).length) throw new Error(`${shortId(a.record_id)} 的已完成标注不符合收录校验，请回到原文件修正后导出。`);
-    annotations.push(a);
-  }
+export function makeExport(state){return {schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'personal_backup',exported_at:new Date().toISOString(),annotator:{id:state.annotator.id,name:state.annotator.name},annotations:Object.values(state.annotations).map(a=>({...a,fixing_prompt_zh:a.verdict==='pass'?buildPrompt(a):null}))};}
+export function normalizeExport(raw,knownIds){
+  if(!raw||![1,SCHEMA_VERSION].includes(raw.schema_version)||raw.dataset!==DATASET||raw.export_type!=='personal_backup')throw new Error('请选择个人备份 JSON。');
+  if(!raw.annotator||!text(raw.annotator.id,120).trim()||!text(raw.annotator.name,32).trim())throw new Error('备份缺少标注人。');
+  if(!Array.isArray(raw.annotations)||raw.annotations.length>300)throw new Error('备份记录格式无效。');
+  const seen=new Set();const annotations=raw.annotations.map(item=>{if(!item||!knownIds.has(item.record_id)||seen.has(item.record_id))throw new Error('备份包含未知或重复样本。');seen.add(item.record_id);const a=upgradeAnnotation(item,null,raw.schema_version===1);if(a.status==='submitted'&&validateAnnotation(a).length)throw new Error(`${shortId(a.record_id)} 的已提交标注无效。`);return a;});
   return {schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'personal_backup',annotator:{id:text(raw.annotator.id,120),name:text(raw.annotator.name,32)},annotations};
 }
-export function mergeExports(exports, minimumReviews=2) {
-  const latest=new Map();
-  for (const data of exports) for (const a of data.annotations) {
-    const key=JSON.stringify([data.annotator.id,a.record_id]);
-    const old=latest.get(key);
-    // Include drafts when resolving repeated exports: a newer draft withdraws an older completed judgment.
-    const newer=!old || Date.parse(a.updated_at)>Date.parse(old.annotation.updated_at) || (a.updated_at===old.annotation.updated_at&&a.revision>old.annotation.revision);
-    if (newer) latest.set(key,{annotator:data.annotator,annotation:a});
-  }
-  const groups=new Map();
-  for (const vote of latest.values()) {
-    if (vote.annotation.status!=='submitted') continue;
-    const id=vote.annotation.record_id;
-    if (!groups.has(id)) groups.set(id,[]);
-    groups.get(id).push(vote);
-  }
-  return [...groups].map(([record_id,votes])=>{
-    const verdicts=new Set(votes.map(v=>v.annotation.verdict));
-    const conflict=verdicts.size>1;
-    const eligible=votes.length>=minimumReviews && !conflict && votes.every(v=>isEffective(v.annotation));
-    const status=conflict?'conflict':eligible?'eligible':votes.length<minimumReviews?'insufficient':'excluded';
-    return {record_id,reviewer_count:votes.length,status,eligible,votes};
-  }).sort((a,b)=>a.record_id.localeCompare(b.record_id));
+export function mergeExports(exports,minimumReviews=2){
+  const latest=new Map();for(const data of exports)for(const a of data.annotations){const key=JSON.stringify([data.annotator.id,a.record_id]),old=latest.get(key);if(!old||Date.parse(a.updated_at)>Date.parse(old.annotation.updated_at)||(a.updated_at===old.annotation.updated_at&&a.revision>old.annotation.revision))latest.set(key,{annotator:data.annotator,annotation:a});}
+  const groups=new Map();for(const vote of latest.values()){if(vote.annotation.status!=='submitted')continue;const id=vote.annotation.record_id;if(!groups.has(id))groups.set(id,[]);groups.get(id).push(vote);}
+  return [...groups].map(([record_id,votes])=>{const conflict=new Set(votes.map(v=>v.annotation.verdict)).size>1,eligible=votes.length>=minimumReviews&&!conflict&&votes.every(v=>isEffective(v.annotation));return {record_id,reviewer_count:votes.length,status:conflict?'conflict':eligible?'eligible':votes.length<minimumReviews?'insufficient':'excluded',eligible,votes};}).sort((a,b)=>a.record_id.localeCompare(b.record_id));
 }

@@ -1,105 +1,52 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#2463eb">
-  <meta name="description" content="PhysFixBench 物理视频标注工作台：只收录明显、客观、可复现的物理问题。">
-  <title>PhysFixBench 视频标注</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=2-media">
-  <script type="module" src="./app.js?v=3-media"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css?v=4-cards"><script type="module" src="./app.js?v=4-cards"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">跳至标注区</a>
-  <header class="topbar">
-    <a class="brand" href="./" aria-label="PhysFixBench 首页"><img src="./favicon.svg" alt="" width="36" height="36"><span>PhysFixBench<span class="brand-divider">/</span><span class="brand-sub">视频标注</span></span></a>
-    <nav class="tabs" aria-label="主导航">
-      <button class="tab active" data-view="annotate" aria-current="page">标注任务</button>
-      <button class="tab" data-view="records">我的记录 <span id="record-count" class="count">0</span></button>
-      <button class="tab" data-view="merge">结果汇总</button>
-    </nav>
-    <div class="header-actions"><button class="button quiet" id="guide-button">标注指南 <span class="key">?</span></button><button class="button primary small" id="export-button">↓ 导出备份</button></div>
+  <header>
+    <strong>视频标注</strong><label>标注人 <input id="annotator-name" maxlength="32" placeholder="姓名" autocomplete="nickname" required></label><span id="progress">0 / 300</span>
+    <div class="header-actions"><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="merge-button">汇总</button></div>
   </header>
-
-  <div class="app-layout">
-    <aside class="sidebar" aria-label="任务队列">
-      <div class="profile"><div class="avatar" id="avatar">研</div><div><span class="eyebrow">当前标注员</span><button id="profile-button" class="profile-name">设置昵称 ↗</button></div><span class="local-dot" title="数据保存在此浏览器"></span></div>
-      <div class="queue-head"><h2>任务队列</h2><span id="queue-total" class="muted">— 条</span></div>
-      <label class="sr-only" for="group-filter">任务分组</label><select id="group-filter" class="group-select"><option value="all">全部任务 · 300 条</option><option value="0">第 1 组 · 001–050</option><option value="1">第 2 组 · 051–100</option><option value="2">第 3 组 · 101–150</option><option value="3">第 4 组 · 151–200</option><option value="4">第 5 组 · 201–250</option><option value="5">第 6 组 · 251–300</option></select>
-      <div class="progress-meta"><span>本机已完成</span><strong id="progress-text">0 / 300</strong></div><div class="progress-track"><div id="progress-fill"></div></div>
-      <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="搜索编号、模型或问题类别" aria-label="搜索任务"></label>
-      <div class="queue-filters" role="group" aria-label="任务状态筛选"><button data-filter="all" class="active" aria-pressed="true">全部</button><button data-filter="pending" aria-pressed="false">待标注</button><button data-filter="submitted" aria-pressed="false">已完成</button></div>
-      <div id="queue" class="queue" role="list" aria-label="视频列表"><p class="empty">正在加载真实数据…</p></div>
-      <div class="sidebar-bottom"><span class="storage-status" id="storage-status"><i></i> 自动保存在此浏览器</span><button class="text-button" id="restore-button">恢复个人备份</button></div>
+  <div class="layout">
+    <aside>
+      <select id="group-filter" aria-label="任务分组"><option value="all">全部 300 条</option><option value="0">1–50</option><option value="1">51–100</option><option value="2">101–150</option><option value="3">151–200</option><option value="4">201–250</option><option value="5">251–300</option></select>
+      <select id="status-filter" aria-label="任务状态"><option value="all">全部</option><option value="pending">未提交</option><option value="submitted">已提交</option></select>
+      <input id="search" type="search" placeholder="搜索编号" aria-label="搜索编号"><div id="queue" aria-label="视频列表">加载中…</div>
     </aside>
-
-    <main id="main" tabindex="-1">
-      <section id="annotate-view" class="view">
-        <div class="page-heading"><div><div class="eyebrow">Physion-300</div><h1>视频标注</h1><p>观看视频，填写物理问题、证据与修复要求。</p></div><span class="dataset-badge"><span></span> 300 条真实样本</span></div>
-        <div class="principle"><div class="principle-icon">!</div><div><strong>只标注明显、客观的物理问题</strong><span> 模棱两可、仅凭猜测或无法排除正常解释的情况，请选「不确定」。画质、美学和指令偏差不计入。</span></div><button class="text-button" id="principle-guide">查看标准 ↗</button></div>
-        <div id="load-error" class="notice error" hidden></div>
-        <div id="workspace" class="workspace" hidden>
-          <section class="video-card card">
-            <div class="card-top"><div class="sample-title"><span class="sample-index" id="sample-index">001</span><div><h2 id="sample-id">T1_01334</h2><span class="muted" id="sample-position">第 1 / 300 条</span></div></div><div class="sample-nav"><button class="icon-button" id="prev-button" title="上一条（Alt+←）" aria-label="上一条">←</button><button class="icon-button" id="next-button" title="下一条（Alt+→）" aria-label="下一条">→</button></div></div>
-            <div class="video-stage"><video id="video" controls playsinline preload="auto" aria-label="待标注的生成视频"></video><div class="video-error" id="video-error" hidden><strong>视频暂时无法加载</strong><p>可尝试重新加载或切换下方线路；无法观察时请标记「无法播放」。</p><button class="button" id="retry-video">重新加载</button></div></div>
-            <div class="video-tools"><div class="frame-tools"><button id="frame-back" class="tool-button" title="后退一帧（,）">Ⅰ←</button><button id="frame-forward" class="tool-button" title="前进一帧（.）">→Ⅰ</button><label class="compact-select"><span class="sr-only">步进帧率</span><select id="fps"><option value="24">24 fps</option><option value="30">30 fps</option><option value="60">60 fps</option></select></label></div><span class="video-time" id="video-time">0.00 / — s</span><label class="compact-select"><span class="sr-only">播放速度</span><select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label></div>
-            <div class="video-delivery"><span id="video-load-status" role="status">正在连接视频…</span><label><span class="sr-only">视频线路</span><select id="video-source"><option value="auto">自动线路</option><option value="site">网站线路</option><option value="original">HF 原站</option></select></label></div>
-            <div class="frame-hint">按设定帧率步进；请结合慢放和原速播放复核。</div>
-            <div class="sample-details"><span class="eyebrow">样本信息</span><div class="tags"><span class="tag" id="generator"></span><span class="tag neutral" id="source-category"></span></div><div class="detail-row"><span>内容类型</span><strong id="primitive"></strong></div><div class="detail-row"><span>场景领域</span><strong id="domain"></strong></div><div class="detail-row"><span>源数据难度</span><strong id="obviousness"></strong></div><div class="source-links"><a id="source-video" target="_blank" rel="noopener noreferrer">打开原视频 ↗</a><button class="text-button" id="copy-link">复制任务链接</button></div></div>
-            <details class="reference"><summary>参考草稿 <span>待人工复核，请先独立观察</span></summary><div class="reference-body"><p class="muted">以下来自源数据，可能包含细微或不成立的判断，不代表已通过本网站标准。</p><h3>草稿中的问题</h3><div id="draft-problems"></div><h3>建议正确表现</h3><div id="draft-expected"></div><h3>保持不变</h3><p id="draft-keep"></p><details><summary>查看原始英文标注</summary><p id="original-annotation"></p></details><button class="button" id="use-draft">将草稿文字填入表单</button></div></details>
-          </section>
-
-          <section class="annotation-card card">
-            <div class="form-heading"><div><span class="eyebrow">人工判定</span><h2>物理问题判定</h2></div><span id="draft-status" class="draft-status">尚未标注</span></div>
-            <form id="annotation-form" novalidate>
-              <fieldset class="verdicts"><legend>01 <span>视频中是否存在明确的物理问题？</span></legend>
-                <label class="verdict-option obvious-option"><input type="radio" name="verdict" value="obvious"><span class="radio-mark"></span><span><strong>明确有物理问题</strong><small>可直接观察，违背客观物理规律</small></span><span class="shortcut">1</span></label>
-                <label class="verdict-option"><input type="radio" name="verdict" value="none"><span class="radio-mark"></span><span><strong>无明显物理问题</strong><small>没有发现足以成立的客观证据</small></span><span class="shortcut">2</span></label>
-                <label class="verdict-option unsure-option"><input type="radio" name="verdict" value="unsure"><span class="radio-mark"></span><span><strong>不确定 / 模棱两可</strong><small>证据不足或存在合理解释，不进入有效问题集</small></span><span class="shortcut">3</span></label>
-                <label class="unplayable"><input type="radio" name="verdict" value="unplayable"> 视频无法播放或内容损坏</label>
-              </fieldset>
-              <div id="obvious-fields" hidden>
-                <div class="section-label"><span>02</span><h3>记录问题与修复要求</h3><button type="button" id="add-issue" class="text-button">＋ 添加问题</button></div>
-                <p class="field-help">每个问题分别填写时间、可见异常和正确表现。不要把不确定的问题混入。</p>
-                <div id="issues"></div>
-                <label class="field-label" for="keep">修复时保持不变的内容 <span>*</span></label><textarea id="keep" rows="2" maxlength="1500" placeholder="例如：人物、物体外观、背景、镜头与其余正常动作"></textarea>
-                <fieldset class="quality-checks"><legend>03 <span>有效问题收录标准 · 三项均需确认</span></legend><label><input type="checkbox" id="check-visible"> 异常在视频中清晰可见，可定位并重复观察</label><label><input type="checkbox" id="check-objective"> 描述的是客观物理异常，而非美学或指令偏差</label><label><input type="checkbox" id="check-unambiguous"> 已排除遮挡、镜头变化等合理解释，无模棱两可判断</label></fieldset>
-                <details class="prompt-preview"><summary>预览结构化修复指令</summary><pre id="prompt-preview"></pre><button type="button" class="text-button" id="copy-prompt">复制修复指令</button></details>
-              </div>
-              <div id="notes-field" hidden><label class="field-label" for="notes" id="notes-label">判定依据 / 备注</label><textarea id="notes" rows="3" maxlength="2000" placeholder="说明你看到了什么，以及作出这一判断的依据"></textarea><p id="notes-help" class="field-help"></p></div>
-              <div class="notice error" id="form-error" role="alert" hidden></div>
-              <div class="submit-row"><button type="button" class="button" id="skip-button">暂时跳过</button><button type="submit" class="button primary" id="save-button">保存并下一条 <span>→</span></button></div>
-              <p class="save-explanation">编辑内容自动存为草稿；点击保存后才计入已完成。<kbd>Ctrl</kbd> + <kbd>Enter</kbd> 保存</p>
-            </form>
-          </section>
-        </div>
-        <footer class="page-footer"><span>PhysFixBench · 仅用于非商业研究与评测</span><a href="https://github.com/SiyuanMaCS/PhysFixBench" target="_blank" rel="noopener noreferrer">数据说明 ↗</a><a href="https://huggingface.co/datasets/HuggingFriends/PhysFixBench" target="_blank" rel="noopener noreferrer">Hugging Face ↗</a></footer>
-      </section>
-
-      <section id="records-view" class="view" hidden>
-        <div class="page-heading"><div><div class="eyebrow">个人进度</div><h1>我的标注记录</h1><p>这里只显示此浏览器的个人进度，请定期导出备份。</p></div><button id="export-valid" class="button primary">↓ 导出有效问题集</button></div>
-        <div class="stats-grid" id="personal-stats"></div>
-        <div class="card table-card"><div class="table-heading"><h2>记录明细</h2><span class="muted">点击记录可继续编辑</span></div><div class="table-scroll"><table><thead><tr><th>样本</th><th>模型</th><th>判断</th><th>状态</th><th>最后更新</th><th></th></tr></thead><tbody id="records-body"></tbody></table></div><div id="records-empty" class="empty" hidden>还没有标注记录。完成第一条后，会显示在这里。</div></div>
-      </section>
-
-      <section id="merge-view" class="view" hidden>
-        <div class="page-heading"><div><div class="eyebrow">标注回收</div><h1>结果汇总</h1><p>导入多位标注员的 JSON 备份，去除重复导出，保留意见分歧。</p></div></div>
-        <div class="card merge-intro"><div class="upload-icon">↥</div><h2>导入多人标注结果</h2><p>选择一个或多个标注备份。所有文件只在当前浏览器内处理。</p><button class="button primary" id="merge-import">＋ 导入标注 JSON</button><span id="merge-files" class="muted">支持多选 · 不上传文件</span></div>
-        <div class="notice info">汇总文件仅保留在当前会话，请及时导出。判定不一致的样本始终进入分歧队列；含「不确定」或「无法播放」的样本不进入一致问题集。</div>
-        <div class="merge-toolbar"><label>每条最少独立标注员 <select id="minimum-reviews"><option value="1">1 人</option><option value="2" selected>2 人</option><option value="3">3 人</option><option value="4">4 人</option><option value="5">5 人</option></select></label><div><button class="button" id="merge-export" disabled>↓ 导出全部汇总</button><button class="button primary" id="merge-export-valid" disabled>↓ 导出一致问题集</button></div></div>
-        <div class="stats-grid" id="merge-stats"></div><div id="merge-messages" role="status"></div>
-        <div class="card table-card"><div class="table-heading"><h2>交叉标注结果</h2><span class="muted">一致问题集保留每位标注员原文，修复细节仍需人工核对</span></div><div class="table-scroll"><table><thead><tr><th>样本</th><th>独立标注员</th><th>投票</th><th>汇总状态</th><th>证据详情</th></tr></thead><tbody id="merge-body"></tbody></table></div></div>
-      </section>
+    <main>
+      <p id="load-error" class="error" role="alert" hidden></p>
+      <div id="workspace" hidden>
+        <section class="video-panel">
+          <div class="sample-heading"><strong id="sample-id"></strong><span id="sample-position"></span><button id="prev-button">上一条</button><button id="next-button">下一条</button></div>
+          <video id="video" controls playsinline preload="auto" aria-label="待标注视频"></video>
+          <div class="video-tools"><button id="frame-back" title="后退 1/30 秒">−1 帧</button><button id="frame-forward" title="前进 1/30 秒">+1 帧</button><span id="video-time">0.00 / — s</span><select id="speed" aria-label="播放速度"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></div>
+          <div class="video-tools delivery-tools"><span id="video-load-status" role="status"></span><button id="retry-video">重载</button><select id="video-source" aria-label="视频线路"><option value="auto">自动线路</option><option value="site">网站线路</option><option value="original">HF 原站</option></select></div>
+        </section>
+        <section class="annotation-panel" aria-label="问题标注">
+          <form id="annotation-form" novalidate>
+            <div class="annotation-heading"><strong>问题卡片</strong><span id="draft-status" role="status"></span></div>
+            <div id="issues"></div><button type="button" id="add-issue">+ 添加问题</button>
+            <p id="form-error" class="error" role="alert" hidden></p>
+            <div class="submission-actions">
+              <button type="submit" name="verdict" value="pass" class="primary">通过</button>
+              <button type="submit" name="verdict" value="reject_no_clear_issue">拒绝：没有明确、无争议的物理问题</button>
+              <button type="submit" name="verdict" value="reject_poor_quality">拒绝：整体质量太差，物理问题过多</button>
+            </div>
+          </form>
+        </section>
+      </div>
     </main>
   </div>
-
-  <dialog id="profile-dialog"><form id="profile-form"><span class="eyebrow">标注员</span><h2>设置标注员昵称</h2><p class="muted">昵称用于区分回收结果；多人请使用不同昵称与各自浏览器。</p><label class="field-label" for="annotator-name">标注员昵称</label><input id="annotator-name" type="text" minlength="2" maxlength="32" required placeholder="例如：alice_01" autocomplete="nickname"><p class="field-help">同一浏览器共享一个身份；换设备请先恢复个人备份。</p><div class="dialog-actions"><button class="button" type="button" data-close="profile-dialog">取消</button><button class="button primary" type="submit">保存昵称</button></div></form></dialog>
-  <dialog id="guide-dialog" class="wide-dialog"><div class="dialog-top"><span class="eyebrow">标注指南</span><button class="icon-button" data-close="guide-dialog" aria-label="关闭指南">×</button></div><h2>只收录明显、客观的物理问题。</h2><p>先独立观看完整视频，再结合慢放和逐帧步进定位证据。源数据里的草稿是待复核候选，不能直接当作事实。</p><div class="guide-grid"><div class="guide-yes"><h3>可以收录</h3><p>物体在连续镜头下无原因消失或瞬移；实体明显穿透；无支撑物体悬空；质量或体积变化明确违背守恒。</p></div><div class="guide-no"><h3>不能据此收录</h3><p>“看起来奇怪”“不够真实”；单纯画质、模糊或美学问题；指令不一致；可能由遮挡、透视、剪辑或正常形变解释的现象。</p></div></div><ol class="guide-steps"><li><strong>确认异常。</strong>无法清晰复现或解释不唯一时，选「不确定」。</li><li><strong>定位证据。</strong>记录起止秒数，写明具体物体与可见变化。</li><li><strong>描述修复。</strong>逐条给出正确物理表现，并明确需要保持的内容。</li><li><strong>导出回收。</strong>标注保存在本浏览器；导出 JSON 后交给负责人，在「结果汇总」合并。</li></ol><div class="notice info">24/30/60 fps 是手动步进设置，并非视频帧率自动检测。视频无法加载时单独标记，不能当作无物理问题。</div><p class="muted">参考：<a href="https://github.com/SiyuanMaCS/MLLM-as-Embodied-World-Judge-Annotation" target="_blank" rel="noopener noreferrer">Embodied World Judge 标注流程</a> · <a href="https://github.com/SiyuanMaCS/PhysFixBench" target="_blank" rel="noopener noreferrer">PhysFixBench 数据与使用限制</a></p><button class="button primary" data-close="guide-dialog">了解，开始观察 →</button></dialog>
-  <dialog id="confirm-dialog"><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button class="button" id="confirm-cancel">取消</button><button class="button primary" id="confirm-ok">确认</button></div></dialog>
-  <div id="toast" class="toast" role="status" hidden></div>
-  <input type="file" id="restore-file" accept=".json,application/json" hidden>
-  <input type="file" id="merge-file" accept=".json,application/json" multiple hidden>
-  <noscript><div class="notice error">请启用 JavaScript 以加载视频队列和保存标注。</div></noscript>
+  <dialog id="merge-dialog">
+    <div class="dialog-heading"><strong>结果汇总</strong><button id="close-merge">关闭</button></div>
+    <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><label>最少人数 <select id="minimum-reviews"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label></div>
+    <p id="merge-status">未导入</p><div class="table-scroll"><table><thead><tr><th>视频</th><th>判定</th><th>状态</th><th>卡片</th></tr></thead><tbody id="merge-body"></tbody></table></div>
+    <div class="merge-tools"><button id="merge-export" disabled>导出全部汇总</button><button id="merge-export-valid" disabled>导出一致通过</button></div>
+  </dialog>
+  <div id="toast" role="status" hidden></div><input id="restore-file" type="file" accept=".json,application/json" hidden><input id="merge-file" type="file" accept=".json,application/json" multiple hidden>
+  <noscript>请启用 JavaScript。</noscript>
 </body>
 </html>
