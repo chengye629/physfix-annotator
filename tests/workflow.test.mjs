@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from '../workflow.js';
 const tasks=Array.from({length:300},(_,i)=>({record_id:'physion::T'+i}));
-function annotation(id,verdict='pass',revision=1,status='submitted'){return {record_id:id,status,verdict,revision,updated_at:`2026-10-23T12:${String(revision).padStart(2,'0')}:00Z`,duration:6,issues:[{timestamp:'1–2',problem:'物体凭空消失',expected:'物体应持续存在'}]};}
+function annotation(id,verdict='pass',revision=1,status='submitted'){return {record_id:id,status,verdict,revision,updated_at:`2026-10-23T12:${String(revision).padStart(2,'0')}:00Z`,duration:6,submitted_watch:{version:1,duration:6,ranges:[[0,6]],play_count:1},issues:[{timestamp:'1–2',problem:'物体凭空消失',expected:'物体应持续存在'}]};}
 function file(who,annotations){return {annotator:{id:who,name:who},annotations};}
 
 test('prefilled but untouched tasks differ from edited drafts and the three completed outcomes',()=>{assert.equal(annotationStage(null),'new');assert.equal(annotationStage({status:'draft',revision:0}),'new');assert.equal(annotationStage({status:'draft',revision:1}),'draft');assert.equal(annotationStage({status:'draft',revision:0,legacy:{status:'submitted'}}),'draft');for(const verdict of ['pass','reject_no_clear_issue','reject_poor_quality']){const a=annotation('a',verdict);assert.equal(annotationStage(a),verdict);assert.ok(matchesTaskStatus(a,verdict));assert.ok(matchesTaskStatus(a,'submitted'));assert.equal(matchesTaskStatus(a,'pending'),false);}assert.ok(matchesTaskStatus({status:'draft',revision:1},'draft'));assert.equal(matchesTaskStatus({status:'draft',revision:0},'draft'),false);});

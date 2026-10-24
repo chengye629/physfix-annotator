@@ -1,8 +1,9 @@
-import {DATASET,SCHEMA_VERSION,VERDICTS,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=4-cards';
-import {VideoDelivery} from './video-delivery.js?v=3-media';
+import {DATASET,SCHEMA_VERSION,VERDICTS,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=7-playback';
+import {VideoDelivery} from './video-delivery.js?v=7-playback';
 import {loadDataset} from './dataset-loader.js?v=3-media';
 import {SegmentPlayer} from './segment-player.js?v=4-cards';
-import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=6-workflow';
+import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=7-playback';
+import {PlaybackTracker,playbackAssessment} from './playback.js?v=7-playback';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const STORAGE_KEY='physfix.workspace.v1';
 let tasks=[],currentIndex=0,mergedFiles=[],mergedRows=[],reviewSummary=null,toastTimer,storageAvailable=true,legacyLocal=false;
@@ -17,7 +18,9 @@ const shortResults={pass:'通过',reject_no_clear_issue:'无明确问题',reject
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,3500);}
 function persist(){state.schema_version=SCHEMA_VERSION;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));storageAvailable=true;return true;}catch{storageAvailable=false;toast('本机保存失败，请立即导出 JSON。');return false;}}
 function nextWarmId(){const selected=selectedTasks(),position=selected.findIndex(t=>t.record_id===current()?.record_id);return [...selected.slice(position+1),...selected.slice(0,position)].find(t=>state.annotations[t.record_id]?.status!=='submitted')?.record_id||null;}
-const delivery=new VideoDelivery(video,{getNextId:nextWarmId,onStatus:({kind,text})=>{$('#video-load-status').textContent=kind==='ready'?(text.includes('下一条')?'下一条已预加载':'已就绪'):text;}});
+function updatePlaybackStatus(){const result=playbackAssessment(active()?.watch);$('#watch-status').textContent=result.valid?'已看完':result.coverage>0?`已观看 ${Math.min(99,Math.floor(result.coverage*100))}%`:'未播放';$('#watch-status').dataset.complete=String(result.valid);}
+const watch=new PlaybackTracker(video,{onChange:(id,evidence)=>{const a=state.annotations[id];if(a){a.watch=evidence;persist();}if(id===current()?.record_id)updatePlaybackStatus();}});
+const delivery=new VideoDelivery(video,{getNextId:nextWarmId,onBeforeReset:()=>watch.capture(true),onStatus:({kind,text})=>{$('#video-load-status').textContent=kind==='ready'?(text.includes('下一条')?'下一条已预加载':'已就绪'):text;}});
 delivery.mode=['auto','site','original'].includes(state.video_source)?state.video_source:'auto';$('#video-source').value=delivery.mode;
 const segment=new SegmentPlayer(video,{onActiveChange:index=>{$$('.issue').forEach(el=>el.classList.toggle('active',index!==null&&Number(el.dataset.issue)===index));},onError:toast});
 function draftStatus(){const a=active(),stage=annotationStage(a);document.getElementById('draft-status').dataset.status=a?.status||'draft';$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[a.verdict]||''}`:stage==='draft'?'草稿已保存':'预标注';}
@@ -36,14 +39,14 @@ function renderQueue(){
 
 function issueHTML(v,i){return `<article class="issue" data-issue="${i}" tabindex="0" aria-label="问题 ${i+1}，点击播放对应片段"><div class="issue-header"><strong>问题 ${i+1}</strong><button type="button" data-play="${i}">播放片段</button><button type="button" data-remove="${i}" aria-label="删除问题 ${i+1}">删除</button></div><label>时间戳（秒）<input class="timestamp" data-field="timestamp" value="${h(v.timestamp)}" placeholder="1.0–3.5" maxlength="80" aria-label="问题 ${i+1} 时间戳"></label><label>当前视频的物理问题描述<textarea data-field="problem" rows="3" maxlength="4000" aria-label="问题 ${i+1} 物理问题描述">${h(v.problem)}</textarea></label><label>应该修改后状态的描述<textarea data-field="expected" rows="3" maxlength="4000" aria-label="问题 ${i+1} 修改后状态">${h(v.expected)}</textarea></label></article>`;}
 function renderIssues(issues){segment.stop();$('#issues').innerHTML=issues.map(issueHTML).join('');$('#add-issue').disabled=issues.length>=50;}
-function readForm(){const old=active()||createDraft(current().record_id,current());return {...old,issues:$$('.issue').map(el=>Object.fromEntries(['timestamp','problem','expected'].map(key=>[key,el.querySelector(`[data-field="${key}"]`).value]))),duration:Number.isFinite(video.duration)&&video.duration>0?video.duration:old.duration};}
+function readForm(){watch.capture(true);const old=active()||createDraft(current().record_id,current());return {...old,issues:$$('.issue').map(el=>Object.fromEntries(['timestamp','problem','expected'].map(key=>[key,el.querySelector(`[data-field="${key}"]`).value]))),duration:Number.isFinite(video.duration)&&video.duration>0?video.duration:old.duration};}
 function saveDraft(){if(!current())return;const a=readForm();a.status='draft';a.updated_at=now();a.revision=(active()?.revision||0)+1;state.annotations[a.record_id]=a;persist();draftStatus();renderQueue();$('#form-error').hidden=true;}
 function showTask(index){
-  if(index<0||index>=tasks.length)return;segment.stop();currentIndex=index;const task=current();state.current_id=task.record_id;
+  if(index<0||index>=tasks.length)return;watch.detach();segment.stop();currentIndex=index;const task=current();state.current_id=task.record_id;
   if(!active())state.annotations[task.record_id]=createDraft(task.record_id,task);
   const a=active();if(a.legacy?.verdict===''&&a.legacy.status==='draft'&&a.issues.length&&a.issues.every(v=>!v.timestamp&&!v.problem&&!v.expected))a.issues=seedIssues(task);
   $('#workspace').hidden=false;$('#sample-id').textContent=shortId(task.record_id);$('#sample-position').textContent=`${index+1} / ${tasks.length}`;
-  video.playbackRate=Number($('#speed').value);delivery.load(task.record_id);$('#video-time').textContent='0.00 / — s';
+  video.playbackRate=Number($('#speed').value);delivery.load(task.record_id);watch.attach(task.record_id,a.watch);updatePlaybackStatus();$('#video-time').textContent='0.00 / — s';
   renderIssues(a.issues);$('#form-error').hidden=true;persist();draftStatus();renderQueue();
   const selected=selectedTasks(),position=selected.findIndex(t=>t.record_id===task.record_id);$('#prev-button').disabled=position<=0;$('#next-button').disabled=position===selected.length-1;
 }
@@ -53,24 +56,24 @@ function submit(verdict){
   if(!current()||!Object.hasOwn(VERDICTS,verdict))return;
   state.annotator.name=$('#annotator-name').value.trim();if(!state.annotator.name){$('#annotator-name').reportValidity();$('#annotator-name').focus();return;}
   const a={...readForm(),verdict},errors=validateAnnotation(a);if(errors.length){$('#form-error').textContent=errors.join('\n');$('#form-error').hidden=false;return;}
-  a.status='submitted';a.updated_at=now();a.revision=(active()?.revision||0)+1;state.annotations[a.record_id]=a;
+  a.submitted_watch=watch.capture(true);a.watch=a.submitted_watch;a.status='submitted';a.updated_at=now();a.revision=(active()?.revision||0)+1;state.annotations[a.record_id]=a;
   const saved=persist();renderQueue();draftStatus();const nextId=nextWarmId();toast(saved?(nextId?`已提交：${shortResults[verdict]}`:'本组已完成，请导出 JSON。'):'已保留在内存，请立即导出 JSON。');if(saved&&nextId)showTask(tasks.findIndex(t=>t.record_id===nextId));
 }
 function download(data,prefix){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=`${prefix}_${now().replace(/[:.]/g,'-')}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-function exportPersonal(){if(!state.annotator.name.trim()){toast('请填写标注人。');$('#annotator-name').focus();return;}download(makeExport(state),'physfix_'+state.annotator.name.replace(/[^\p{L}\p{N}_-]/gu,'_'));}
+function exportPersonal(){watch.capture(true);if(!state.annotator.name.trim()){toast('请填写标注人。');$('#annotator-name').focus();return;}download(makeExport(state),'physfix_'+state.annotator.name.replace(/[^\p{L}\p{N}_-]/gu,'_'));}
 function renderMerge(){
   reviewSummary=buildReviewSummary(mergedFiles,tasks.map(t=>t.record_id),Number($('#minimum-reviews').value));
   mergedRows=reviewSummary.samples.filter(r=>r.reviewer_count>0);
   const c=reviewSummary.coverage;
-  $('#merge-status').textContent=mergedFiles.length?`已导入 ${mergedFiles.length} 份文件 · ${reviewSummary.annotators.length} 位标注人 · 覆盖 ${c.covered}/${c.total} · 待补标 ${c.needs_more} · 分歧 ${c.conflicts} · ${c.eligible} 条一致通过`:'未导入';
+  $('#merge-status').textContent=mergedFiles.length?`已导入 ${mergedFiles.length} 份文件 · ${reviewSummary.annotators.length} 位标注人 · 覆盖 ${c.covered}/${c.total} · 待补标 ${c.needs_more} · 分歧 ${c.conflicts} · ${c.eligible} 条一致通过 · 播放筛除 ${reviewSummary.screening.excluded}`:'未导入';
   const labels={eligible:'一致通过',conflict:'有分歧',insufficient:'人数不足',excluded:'一致拒绝',unreviewed:'未标注'};
   const visible=filterReviewRows(reviewSummary,$('#merge-filter').value);
   $('#merge-body').innerHTML=visible.map(r=>`<tr><td><button class="task-link" data-review-id="${h(r.record_id)}">${h(shortId(r.record_id))}</button></td><td>${r.votes.map(v=>`${h(v.annotator.name)}：${h(VERDICTS[v.annotation.verdict])}`).join('<br>')||'—'}</td><td>${r.reviewer_count}/${reviewSummary.minimum} · ${labels[r.status]}</td><td>${r.votes.length?`<details><summary>查看卡片</summary>${r.votes.map(v=>`<div class="merged-vote"><strong>${h(v.annotator.name)}</strong>${v.annotation.issues.map(i=>`<p>${h(i.timestamp)} s</p><p>${h(i.problem)}</p><p>${h(i.expected)}</p>`).join('')}</div>`).join('')}</details>`:'—'}</td></tr>`).join('')||'<tr><td colspan="4">无匹配记录</td></tr>';
   $('#annotator-body').innerHTML=reviewSummary.annotators.map(p=>`<tr><td>${h(p.name)}</td><td>${p.submitted}</td><td>${p.pass}</td><td>${p.reject_no_clear_issue}</td><td>${p.reject_poor_quality}</td></tr>`).join('');
   $('#annotator-progress').hidden=!reviewSummary.annotators.length;
-  $('#merge-export').disabled=!mergedRows.length;$('#merge-export-valid').disabled=!mergedRows.some(r=>r.eligible);$('#merge-export-review').disabled=!mergedFiles.length||!reviewSummary.followup.length;
+  $('#merge-export').disabled=!mergedRows.length;$('#merge-export-valid').disabled=!mergedRows.some(r=>r.eligible);$('#merge-export-review').disabled=!mergedFiles.length||!reviewSummary.followup.length;$('#merge-export-screened').disabled=!reviewSummary.screened_out.length;
 }
-function exportMerged(onlyPassed=false){download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:onlyPassed?'consensus_problem_set':'merged_review',exported_at:now(),minimum_reviewers:reviewSummary.minimum,detail_review_required:true,coverage:reviewSummary.coverage,annotators:reviewSummary.annotators,samples:onlyPassed?mergedRows.filter(r=>r.eligible):mergedRows},onlyPassed?'physfix_consensus':'physfix_merged');}
+function exportMerged(onlyPassed=false){download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:onlyPassed?'consensus_problem_set':'merged_review',exported_at:now(),minimum_reviewers:reviewSummary.minimum,detail_review_required:true,coverage:reviewSummary.coverage,playback_screening:reviewSummary.screening,annotators:reviewSummary.annotators,samples:onlyPassed?mergedRows.filter(r=>r.eligible):mergedRows},onlyPassed?'physfix_consensus':'physfix_merged');}
 
 $('#annotator-name').value=state.annotator.name;$('#annotator-name').oninput=()=>{state.annotator.name=$('#annotator-name').value.trim();persist();};
 $('#queue').onclick=e=>{const button=e.target.closest('[data-index]');if(button)showTask(Number(button.dataset.index));};
@@ -92,12 +95,15 @@ video.addEventListener('timeupdate',updateTime);
 video.addEventListener('loadedmetadata',()=>{updateTime();if(active()&&Number.isFinite(video.duration)&&video.duration>0){active().duration=video.duration;persist();}});
 $('#retry-video').onclick=()=>{segment.stop();delivery.retry();};$('#video-source').onchange=()=>{segment.stop();state.video_source=$('#video-source').value;persist();delivery.setMode(state.video_source);};
 $('#export-button').onclick=exportPersonal;$('#restore-button').onclick=()=>$('#restore-file').click();
-$('#restore-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw new Error('文件不能超过 10 MB。');const data=normalizeExport(JSON.parse(await file.text()),new Set(tasks.map(t=>t.record_id)));if(!window.confirm(`用「${data.annotator.name}」的备份替换本机进度？`))return;state.annotator=data.annotator;state.annotations=Object.fromEntries(data.annotations.map(a=>[a.record_id,a]));$('#annotator-name').value=state.annotator.name;persist();showTask(currentIndex);toast('已恢复。');}catch(error){toast(error.message);}finally{e.target.value='';}};
+$('#restore-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw new Error('文件不能超过 10 MB。');const data=normalizeExport(JSON.parse(await file.text()),new Set(tasks.map(t=>t.record_id)));if(!window.confirm(`用「${data.annotator.name}」的备份替换本机进度？`))return;watch.detach();state.annotator=data.annotator;state.annotations=Object.fromEntries(data.annotations.map(a=>[a.record_id,a]));$('#annotator-name').value=state.annotator.name;persist();showTask(currentIndex);toast('已恢复。');}catch(error){toast(error.message);}finally{e.target.value='';}};
 $('#merge-button').onclick=()=>{$('#merge-dialog').showModal();renderMerge();};$('#close-merge').onclick=()=>$('#merge-dialog').close();$('#merge-import').onclick=()=>$('#merge-file').click();
 $('#merge-file').onchange=async e=>{const errors=[];for(const file of [...e.target.files]){try{if(file.size>10000000)throw new Error('文件不能超过 10 MB。');mergedFiles.push(normalizeExport(JSON.parse(await file.text()),new Set(tasks.map(t=>t.record_id))));}catch(error){errors.push(`${file.name}：${error.message}`);}}renderMerge();if(errors.length)toast(errors.join('\n'));e.target.value='';};
+$('#merge-export-screened').onclick=()=>download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'playback_excluded',exported_at:now(),playback_screening:reviewSummary.screening,records:reviewSummary.screened_out},'physfix_playback_excluded');
 $('#minimum-reviews').onchange=renderMerge;$('#merge-filter').onchange=renderMerge;$('#merge-export').onclick=()=>exportMerged();$('#merge-export-valid').onclick=()=>exportMerged(true);
-$('#merge-export-review').onclick=()=>download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'review_queue',exported_at:now(),minimum_reviewers:reviewSummary.minimum,coverage:reviewSummary.coverage,samples:reviewSummary.followup},'physfix_review_queue');
+$('#merge-export-review').onclick=()=>download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'review_queue',exported_at:now(),minimum_reviewers:reviewSummary.minimum,coverage:reviewSummary.coverage,playback_screening:reviewSummary.screening,samples:reviewSummary.followup},'physfix_review_queue');
 $('#merge-body').onclick=e=>{const button=e.target.closest('[data-review-id]');if(!button)return;const index=tasks.findIndex(t=>t.record_id===button.dataset.reviewId);if(index<0)return;if(state.group!=='all'&&Math.floor(index/50)!==Number(state.group)){state.group='all';$('#group-filter').value='all';}$('#merge-dialog').close();showTask(index);};
+window.addEventListener('pagehide',()=>watch.capture(true));
+document.addEventListener('visibilitychange',()=>watch.capture(true));
 window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)toast('其他标签页修改了进度，请先导出当前内容。');});
 async function init(){try{
   const manifestRequest=fetch('./data/video-manifest.json?v=1',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);

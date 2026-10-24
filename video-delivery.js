@@ -8,6 +8,7 @@ export class VideoDelivery {
     manifest = {},
     getNextId = () => null,
     onStatus = () => {},
+    onBeforeReset = () => {},
     fetchVideo = (...args) => fetch(...args),
     urls = URL,
     maxItems = 3,
@@ -15,7 +16,7 @@ export class VideoDelivery {
     slowTimeout = 9000,
     prefetchTimeout = 45000,
   } = {}) {
-    Object.assign(this, {video,baseURL,manifest,getNextId,onStatus,fetchVideo,urls,maxItems,maxBytes,slowTimeout,prefetchTimeout});
+    Object.assign(this, {video,baseURL,manifest,getNextId,onStatus,onBeforeReset,fetchVideo,urls,maxItems,maxBytes,slowTimeout,prefetchTimeout});
     this.mode = 'auto';
     this.cache = new Map();
     this.epoch = 0;
@@ -73,6 +74,7 @@ export class VideoDelivery {
     this.video.pause();
     // Stop the old network request and clear old duration before displaying a
     // new task, so a fast submission cannot use the preceding video's length.
+    this.onBeforeReset();
     this.video.removeAttribute('src');
     this.video.load();
     this.listeners = new AbortController();

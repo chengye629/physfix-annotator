@@ -1,3 +1,4 @@
+import {normalizePlayback} from './playback.js?v=7-playback';
 export const DATASET='physfixbench-physion300';
 export const SCHEMA_VERSION=2;
 export const HF_BASE='https://huggingface.co/datasets/HuggingFriends/PhysFixBench/resolve/main/videos/';
@@ -31,7 +32,7 @@ export function upgradeAnnotation(item,task,legacyVersion=false){
   if(verdict!==''&&!Object.hasOwn(VERDICTS,verdict))throw new Error('备份包含无效判定。');
   let issues=item.issues.map(v=>{const start=typeof v?.start==='number'?String(v.start):text(v?.start,30),end=typeof v?.end==='number'?String(v.end):text(v?.end,30);return {timestamp:typeof v?.timestamp==='string'?text(v.timestamp,80):start&&end?(start===end?start:`${start}–${end}`):start,problem:text(v?.problem),expected:text(v?.expected)};});
   if(legacy&&!previous&&issues.length&&issues.every(v=>!v.timestamp&&!v.problem&&!v.expected)&&task)issues=seedIssues(task);
-  return {record_id:item.record_id,status,verdict,issues,keep:text(item.keep,1500),duration:typeof item.duration==='number'&&Number.isFinite(item.duration)&&item.duration>0?item.duration:null,revision:Number.isSafeInteger(item.revision)&&item.revision>=0?item.revision:0,updated_at:typeof item.updated_at==='string'&&Number.isFinite(Date.parse(item.updated_at))?new Date(item.updated_at).toISOString():'1970-01-01T00:00:00.000Z',...(legacy?{legacy:{verdict:previous,status:item.status,notes:text(item.notes,2000),checks:item.checks||{}}}:item.legacy?{legacy:item.legacy}:{})};
+  return {record_id:item.record_id,status,verdict,issues,keep:text(item.keep,1500),duration:typeof item.duration==='number'&&Number.isFinite(item.duration)&&item.duration>0?item.duration:null,revision:Number.isSafeInteger(item.revision)&&item.revision>=0?item.revision:0,updated_at:typeof item.updated_at==='string'&&Number.isFinite(Date.parse(item.updated_at))?new Date(item.updated_at).toISOString():'1970-01-01T00:00:00.000Z',...(normalizePlayback(item.watch)?{watch:normalizePlayback(item.watch)}:{}),...(normalizePlayback(item.submitted_watch)?{submitted_watch:normalizePlayback(item.submitted_watch)}:{}),...(legacy?{legacy:{verdict:previous,status:item.status,notes:text(item.notes,2000),checks:item.checks||{}}}:item.legacy?{legacy:item.legacy}:{})};
 }
 export function makeExport(state){return {schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'personal_backup',exported_at:new Date().toISOString(),annotator:{id:state.annotator.id,name:state.annotator.name},annotations:Object.values(state.annotations).map(a=>({...a,fixing_prompt_zh:a.verdict==='pass'?buildPrompt(a):null}))};}
 export function normalizeExport(raw,knownIds){
@@ -41,8 +42,11 @@ export function normalizeExport(raw,knownIds){
   const seen=new Set();const annotations=raw.annotations.map(item=>{if(!item||!knownIds.has(item.record_id)||seen.has(item.record_id))throw new Error('备份包含未知或重复样本。');seen.add(item.record_id);const a=upgradeAnnotation(item,null,raw.schema_version===1);if(a.status==='submitted'&&validateAnnotation(a).length)throw new Error(`${shortId(a.record_id)} 的已提交标注无效。`);return a;});
   return {schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'personal_backup',annotator:{id:text(raw.annotator.id,120),name:text(raw.annotator.name,32)},annotations};
 }
-export function mergeExports(exports,minimumReviews=2){
+export function selectLatestAnnotations(exports){
   const latest=new Map();for(const data of exports)for(const a of data.annotations){const key=JSON.stringify([data.annotator.id,a.record_id]),old=latest.get(key);if(!old||Date.parse(a.updated_at)>Date.parse(old.annotation.updated_at)||(a.updated_at===old.annotation.updated_at&&a.revision>old.annotation.revision))latest.set(key,{annotator:data.annotator,annotation:a});}
-  const groups=new Map();for(const vote of latest.values()){if(vote.annotation.status!=='submitted')continue;const id=vote.annotation.record_id;if(!groups.has(id))groups.set(id,[]);groups.get(id).push(vote);}
+  return [...latest.values()];
+}
+export function mergeExports(exports,minimumReviews=2){
+  const groups=new Map();for(const vote of selectLatestAnnotations(exports)){if(vote.annotation.status!=='submitted')continue;const id=vote.annotation.record_id;if(!groups.has(id))groups.set(id,[]);groups.get(id).push(vote);}
   return [...groups].map(([record_id,votes])=>{const conflict=new Set(votes.map(v=>v.annotation.verdict)).size>1,eligible=votes.length>=minimumReviews&&!conflict&&votes.every(v=>isEffective(v.annotation));return {record_id,reviewer_count:votes.length,status:conflict?'conflict':eligible?'eligible':votes.length<minimumReviews?'insufficient':'excluded',eligible,votes};}).sort((a,b)=>a.record_id.localeCompare(b.record_id));
 }

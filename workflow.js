@@ -1,4 +1,5 @@
-import {mergeExports} from './core.js?v=4-cards';
+import {mergeExports} from './core.js?v=7-playback';
+import {screenPlaybackExports} from './screening.js?v=7-playback';
 
 export function annotationStage(annotation){
   if(annotation?.status==='submitted')return annotation.verdict;
@@ -31,7 +32,8 @@ export function groupLink(base,group){
 }
 export function buildReviewSummary(exports,taskIds,minimumReviews=2){
   const minimum=Math.max(1,Number(minimumReviews)||1),ids=[...new Set(taskIds)],known=new Set(ids);
-  const received=mergeExports(exports,minimum).filter(row=>known.has(row.record_id));
+  const screened=screenPlaybackExports(exports);
+  const received=mergeExports(screened.exports,minimum).filter(row=>known.has(row.record_id));
   const byId=new Map(received.map(row=>[row.record_id,row]));
   const samples=ids.map(record_id=>byId.get(record_id)||{record_id,reviewer_count:0,status:'unreviewed',eligible:false,votes:[]});
   const people=new Map();
@@ -43,7 +45,7 @@ export function buildReviewSummary(exports,taskIds,minimumReviews=2){
   }
   const coverage={total:ids.length,covered:received.length,met_minimum:samples.filter(r=>r.reviewer_count>=minimum).length,needs_more:samples.filter(r=>r.reviewer_count<minimum).length,conflicts:samples.filter(r=>r.status==='conflict').length,eligible:samples.filter(r=>r.eligible).length};
   const followup=samples.filter(r=>r.reviewer_count<minimum||r.status==='conflict').map(r=>({record_id:r.record_id,reviewer_count:r.reviewer_count,additional_reviews:Math.max(0,minimum-r.reviewer_count),needs_adjudication:r.status==='conflict',reason:r.status==='conflict'?'conflict':r.reviewer_count?'insufficient':'unreviewed',reviewed_by:r.votes.map(v=>v.annotator.id)}));
-  return {minimum,coverage,samples,followup,annotators:[...people.values()].map(({latest,...person})=>person)};
+  return {minimum,coverage,samples,followup,screening:screened.report,screened_out:screened.excluded,annotators:[...people.values()].map(({latest,...person})=>person)};
 }
 export function filterReviewRows(summary,filter){
   return summary.samples.filter(row=>filter==='received'?row.reviewer_count>0:filter==='needs_more'?row.reviewer_count<summary.minimum:filter==='all'?true:row.status===filter);

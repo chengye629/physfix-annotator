@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=6-workflow"><script type="module" src="./app.js?v=6-workflow"></script>
+  <link rel="stylesheet" href="./style.css?v=7-playback"><script type="module" src="./app.js?v=7-playback"></script>
 </head>
 <body>
   <header>
@@ -22,7 +22,7 @@
         <section class="video-panel">
           <div class="sample-heading"><strong id="sample-id"></strong><span id="sample-position"></span><button id="prev-button">上一条</button><button id="next-button">下一条</button></div>
           <video id="video" controls playsinline preload="auto" aria-label="待标注视频"></video>
-          <div class="video-tools"><button id="frame-back" title="后退 1/30 秒">−1 帧</button><button id="frame-forward" title="前进 1/30 秒">+1 帧</button><span id="video-time">0.00 / — s</span><select id="speed" aria-label="播放速度"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></div>
+          <div class="video-tools"><button id="frame-back" title="后退 1/30 秒">−1 帧</button><button id="frame-forward" title="前进 1/30 秒">+1 帧</button><span id="video-time">0.00 / — s</span><span id="watch-status" role="status">未播放</span><select id="speed" aria-label="播放速度"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></div>
           <div class="video-tools delivery-tools"><span id="video-load-status" role="status"></span><button id="retry-video">重载</button><select id="video-source" aria-label="视频线路"><option value="auto">自动线路</option><option value="site">网站线路</option><option value="original">HF 原站</option></select></div>
         </section>
         <section class="annotation-panel" aria-label="问题标注">
@@ -44,7 +44,7 @@
     <div class="dialog-heading"><strong>结果汇总</strong><button id="close-merge">关闭</button></div>
     <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><label>最少人数 <select id="minimum-reviews"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><label>查看 <select id="merge-filter"><option value="received">已导入记录</option><option value="needs_more">待补标</option><option value="conflict">有分歧</option><option value="eligible">一致通过</option><option value="excluded">一致拒绝</option><option value="all">全部视频</option></select></label></div>
     <p id="merge-status">未导入</p><details id="annotator-progress" hidden><summary>标注人进度</summary><div class="table-scroll"><table><thead><tr><th>标注人</th><th>已提交</th><th>通过</th><th>无明确问题</th><th>质量差</th></tr></thead><tbody id="annotator-body"></tbody></table></div></details><div class="table-scroll"><table><thead><tr><th>视频</th><th>判定</th><th>状态</th><th>卡片</th></tr></thead><tbody id="merge-body"></tbody></table></div>
-    <div class="merge-tools"><button id="merge-export" disabled>导出全部汇总</button><button id="merge-export-valid" disabled>导出一致通过</button><button id="merge-export-review" disabled>导出待复核清单</button></div>
+    <div class="merge-tools"><button id="merge-export" disabled>导出全部汇总</button><button id="merge-export-valid" disabled>导出一致通过</button><button id="merge-export-review" disabled>导出待复核清单</button><button id="merge-export-screened" disabled>导出播放筛除记录</button></div>
   </dialog>
   <div id="toast" role="status" hidden></div><input id="restore-file" type="file" accept=".json,application/json" hidden><input id="merge-file" type="file" accept=".json,application/json" multiple hidden>
   <noscript>请启用 JavaScript。</noscript>
