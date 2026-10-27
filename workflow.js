@@ -1,5 +1,6 @@
-import {mergeExports} from './core.js?v=7-playback';
-import {screenPlaybackExports} from './screening.js?v=7-playback';
+import {mergeExports} from './core.js?v=8-full';
+import {screenPlaybackExports} from './screening.js?v=8-full';
+import {GROUP_SIZE,sourceOf} from './dataset-config.js?v=8-full';
 
 export function annotationStage(annotation){
   if(annotation?.status==='submitted')return annotation.verdict;
@@ -12,22 +13,29 @@ export function matchesTaskStatus(annotation,filter){
   if(filter==='submitted')return annotation?.status==='submitted';
   return stage===filter;
 }
-export function groupTasks(tasks,group){return tasks.filter((task,index)=>group==='all'||Math.floor(index/50)===Number(group));}
+export function groupTasks(tasks,group,source='all'){return tasks.filter((task,index)=>(group==='all'||Math.floor(index/GROUP_SIZE)===Number(group))&&(source==='all'||sourceOf(task)===source));}
 export function resolveStartTask(tasks,state,params){
-  const explicit=params.get('group');
-  let group=explicit&&/^[1-6]$/.test(explicit)?String(Number(explicit)-1):String(state.group??'all');
-  if(!['all','0','1','2','3','4','5'].includes(group))group='all';
+  const explicit=params.get('group'),count=Math.ceil(tasks.length/GROUP_SIZE);
+  const validGroup=value=>/^\d+$/.test(value||'')&&Number(value)>=1&&Number(value)<=count;
+  let group=validGroup(explicit)?String(Number(explicit)-1):String(state.group??'all');
+  if(group!=='all'&&(!/^\d+$/.test(group)||Number(group)>=count))group='all';
+  const sources=new Set(tasks.map(sourceOf)),requested=params.get('source');
+  let source=requested??(validGroup(explicit)?'all':state.source_filter??'all');
+  if(!sources.has(source))source='all';
   const sample=params.get('sample');
-  let index=tasks.findIndex(t=>sample?t.record_id.split('::').at(-1)===sample:t.record_id===state.current_id);
-  if(index>=0&&group!=='all'&&Math.floor(index/50)!==Number(group)){
-    if(sample)group='all';else index=-1;
+  let index=tasks.findIndex(t=>sample?t.record_id===sample||t.dir_name===sample:t.record_id===state.current_id);
+  if(sample&&index<0){const matches=tasks.map((task,i)=>({task,i})).filter(({task})=>task.record_id.split('::').at(-1)===sample);if(matches.length===1)index=matches[0].i;}
+  if(index>=0&&!groupTasks(tasks,group,source).includes(tasks[index])){
+    if(sample){group='all';source='all';}else index=-1;
   }
-  if(index<0){const selected=groupTasks(tasks,group);index=tasks.indexOf(selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0]);}
-  return {group,index:Math.max(0,index)};
+  if(!groupTasks(tasks,group,source).length)group='all';
+  if(index<0){const selected=groupTasks(tasks,group,source);index=tasks.indexOf(selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0]);}
+  return {group,source,index:Math.max(0,index)};
 }
-export function groupLink(base,group){
+export function groupLink(base,group,source='all'){
   const url=new URL(base);url.hash='';url.search='';
-  if(group==='all')url.searchParams.delete('group');else url.searchParams.set('group',String(Number(group)+1));
+  if(group!=='all')url.searchParams.set('group',String(Number(group)+1));
+  if(source!=='all')url.searchParams.set('source',source);
   return url.href;
 }
 export function buildReviewSummary(exports,taskIds,minimumReviews=2){

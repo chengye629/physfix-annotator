@@ -10,7 +10,7 @@ if(args.length<3||args[0]!=='--out'){
 }else{
   try{
     const destination=resolve(args[1]),paths=args.slice(2);
-    const tasks=(await readFile(new URL('../data/physfixbench_physion300.jsonl',import.meta.url),'utf8')).trim().split(/\r?\n/).map(JSON.parse);
+    const tasks=(await readFile(new URL('../data/physfixbench_full.jsonl',import.meta.url),'utf8')).trim().split(/\r?\n/).map(JSON.parse);
     const known=new Set(tasks.map(t=>t.record_id)),backups=[];
     for(const path of paths){const content=await readFile(resolve(path),'utf8');if(Buffer.byteLength(content)>10000000)throw new Error('文件不能超过 10 MB：'+path);backups.push(normalizeExport(JSON.parse(content),known));}
     const screened=screenPlaybackExports(backups),exported_at=new Date().toISOString();

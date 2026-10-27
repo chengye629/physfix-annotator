@@ -1,4 +1,4 @@
-import { videoUrl } from './core.js';
+import { videoUrl } from './core.js?v=8-full';
 
 // Keep only a few unmodified video files in memory. Annotation data uses its
 // existing, separate localStorage key and is never removed by this cache.
@@ -29,14 +29,14 @@ export class VideoDelivery {
   targets(id) {
     const mirror = this.manifest[id];
     const targets = [];
-    if (mirror && this.mode !== 'original') {
+    if (mirror?.file && this.mode !== 'original') {
       const url = new URL(mirror.file, this.baseURL);
       // The versioned URL also lets the browser reuse a complete prefetched
       // HTTP response after a refresh, without stale files after data updates.
       url.searchParams.set('v', mirror.sha256.slice(0, 12));
       targets.push({url:url.href,source:'网站线路'});
     }
-    if (this.mode !== 'site' || !targets.length) targets.push({url:videoUrl(id),source:'HF 原站'});
+    if (this.mode !== 'site' || !targets.length) targets.push({url:videoUrl(id,mirror?.upstream_file),source:'HF 原站'});
     return targets;
   }
 

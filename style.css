@@ -47,3 +47,5 @@ dialog{width:min(1000px,calc(100vw - 36px));max-height:88dvh;overflow:auto;paddi
 
 #watch-status{font-size:12px;color:var(--muted,#64748b)}
 #watch-status[data-complete="true"]{color:#15803d}
+
+@media(max-width:600px){#source-filter{grid-column:1/-1}}

@@ -1,0 +1,34 @@
+{
+  "dataset": "physfixbench-batch1",
+  "count": 606,
+  "github_commit": "31d3ca543b1a586d48dd9e646c82f70dde63a746",
+  "huggingface_commit": "b1c24dfbe30229941d192abc52b99c6fd2d28c81",
+  "sources": [
+    {
+      "file": "physfixbench_physion300.jsonl",
+      "source": "physion_eval",
+      "count": 300,
+      "sha256": "b120b781ccc085edc96c65d171c24b3dbcf54e43bde2688d20f8abfbb411693d"
+    },
+    {
+      "file": "physfixbench_robojudge115.jsonl",
+      "source": "robojudge",
+      "count": 115,
+      "sha256": "70f57263151cebf28d3bb926e8c991b7c14f0fa56cc46ead17c87fe98d765030"
+    },
+    {
+      "file": "physfixbench_phyground.jsonl",
+      "source": "phyground",
+      "count": 91,
+      "sha256": "5cc07ab15dda34175c6f47fb0ecdf0f300d9817234010dca27cac9ece8581533"
+    },
+    {
+      "file": "physfixbench_videophy2.jsonl",
+      "source": "videophy2",
+      "count": 100,
+      "sha256": "f35be806210573ec47cce34ddb78ee0452f530b0b8c31f0ea29f192820626d33"
+    }
+  ],
+  "index_sha256": "a5eb694be644d5b7ed5db9807a143a969d04fa3d16f05cc117f84e7f1a80a675",
+  "media_site": "https://chengye629.github.io/physfix-annotator-media/"
+}

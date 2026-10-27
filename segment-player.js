@@ -1,4 +1,4 @@
-import {parseTimestamp,playbackRange} from './core.js?v=4-cards';
+import {parseTimestamp,playbackRange} from './core.js?v=8-full';
 
 export class SegmentPlayer {
   constructor(video,{onActiveChange=()=>{},onError=()=>{}}={}) {

@@ -3,16 +3,17 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=7-playback"><script type="module" src="./app.js?v=7-playback"></script>
+  <link rel="stylesheet" href="./style.css?v=8-full"><script type="module" src="./app.js?v=8-full"></script>
 </head>
 <body>
   <header>
-    <strong>视频标注</strong><label>标注人 <input id="annotator-name" maxlength="32" placeholder="姓名" autocomplete="nickname" required></label><span id="progress"><span id="progress-text">已提交 0 / 300</span><progress id="task-progress" max="300" value="0" aria-label="本组提交进度"></progress></span>
+    <strong>视频标注</strong><label>标注人 <input id="annotator-name" maxlength="32" placeholder="姓名" autocomplete="nickname" required></label><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
     <div class="header-actions"><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="merge-button">汇总</button></div>
   </header>
   <div class="layout">
     <aside>
-      <select id="group-filter" aria-label="任务分组"><option value="all">全部 300 条</option><option value="0">1–50</option><option value="1">51–100</option><option value="2">101–150</option><option value="3">151–200</option><option value="4">201–250</option><option value="5">251–300</option></select>
+      <select id="source-filter" aria-label="数据来源"><option value="all">全部来源</option></select>
+      <select id="group-filter" aria-label="任务分组"><option value="all">全部任务</option></select>
       <select id="status-filter" aria-label="任务状态"><option value="all">全部</option><option value="pending">未提交</option><option value="draft">草稿</option><option value="pass">已通过</option><option value="reject_no_clear_issue">拒绝：无明确问题</option><option value="reject_poor_quality">拒绝：质量差</option><option value="submitted">已提交</option></select>
       <input id="search" type="search" placeholder="搜索编号" aria-label="搜索编号"><div class="queue-actions"><button id="resume-button" disabled>继续标注</button><button id="copy-group-link" title="复制当前分组的任务链接">复制组链接</button></div><div id="queue" aria-label="视频列表">加载中…</div>
     </aside>

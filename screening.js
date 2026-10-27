@@ -1,5 +1,5 @@
-import {selectLatestAnnotations} from './core.js?v=7-playback';
-import {assessSubmittedPlayback} from './playback.js?v=7-playback';
+import {selectLatestAnnotations} from './core.js?v=8-full';
+import {assessSubmittedPlayback} from './playback.js?v=8-full';
 
 // Deduplicate first: a later invalid submission must withdraw an earlier valid vote.
 export function screenPlaybackExports(exports){
