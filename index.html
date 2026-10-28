@@ -3,15 +3,14 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=9-name"><script type="module" src="./app.js?v=9-name"></script>
+  <link rel="stylesheet" href="./style.css?v=10-shared"><script type="module" src="./app.js?v=10-shared"></script>
 </head>
 <body>
   <section id="entry" aria-label="填写姓名">
     <form id="entry-form" class="entry-card">
-      <h1>视频标注</h1><span id="entry-task" hidden></span>
+      <h1>视频标注</h1>
       <label for="entry-name">姓名</label>
       <input id="entry-name" name="name" maxlength="32" placeholder="请输入姓名" autocomplete="name" required autofocus>
-      <div id="entry-assignment-row"><label for="entry-assignment">任务</label><select id="entry-assignment"><option value="">请选择自己的任务</option><option value="1">第 1 份（101 条）</option><option value="2">第 2 份（101 条）</option><option value="3">第 3 份（101 条）</option><option value="4">第 4 份（101 条）</option><option value="5">第 5 份（101 条）</option><option value="6">第 6 份（101 条）</option><option value="all">全部任务（负责人）</option></select></div>
       <p id="entry-error" class="error" role="alert" hidden></p>
       <button id="enter-button" type="submit" disabled>进入标注</button>
       <button id="entry-export" type="button" hidden>导出当前进度</button>
@@ -20,7 +19,7 @@
   <div id="annotation-app" hidden>
   <header>
     <strong>视频标注</strong><div class="annotator-identity"><span>标注人</span><strong id="annotator-name"></strong><button type="button" id="change-person">切换</button></div><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
-    <div class="header-actions"><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="merge-button">汇总</button></div>
+    <div class="header-actions"><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="manage-button" hidden>管理</button><button id="merge-button" hidden>汇总</button></div>
   </header>
   <div class="layout">
     <aside>
@@ -54,6 +53,7 @@
     </main>
   </div>
   </div>
+  <dialog id="management-dialog"><div class="dialog-heading"><strong>人员与任务</strong><button id="close-management">关闭</button></div><p id="management-status" role="status"></p><div class="table-scroll"><table><thead><tr><th>姓名</th><th>任务</th><th>操作</th></tr></thead><tbody id="management-body"></tbody></table></div><div class="merge-tools"><button id="view-all-tasks">查看全部任务</button></div></dialog>
   <dialog id="merge-dialog">
     <div class="dialog-heading"><strong>结果汇总</strong><button id="close-merge">关闭</button></div>
     <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><label>最少人数 <select id="minimum-reviews"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><label>查看 <select id="merge-filter"><option value="received">已导入记录</option><option value="needs_more">待补标</option><option value="conflict">有分歧</option><option value="eligible">一致通过</option><option value="excluded">一致拒绝</option><option value="all">全部视频</option></select></label></div>

@@ -6,10 +6,10 @@ import {createDraft,makeExport,normalizeExport} from '../core.js';
 import {personalExportPrefix} from '../annotator-entry.js';
 const tasks=(await readFile(new URL('../data/physfixbench_full.jsonl',import.meta.url),'utf8')).trim().split(/\r?\n/).map(JSON.parse);
 const known=new Set(tasks.map(t=>t.record_id));
-test('six task packs cover all 606 tasks exactly once, 101 per person, with all sources balanced',()=>{
+test('seven task packs cover all 606 tasks exactly once, 86 or 87 per person, with all sources balanced',()=>{
   const seen=new Set(),counts={};
-  for(let person=1;person<=6;person++){
-    const own=assignedTasks(tasks,person);assert.equal(own.length,101);
+  for(let person=1;person<=7;person++){
+    const own=assignedTasks(tasks,person);assert.equal(own.length,person<=4?87:86);
     for(const task of own){assert.ok(!seen.has(task.record_id));seen.add(task.record_id);}
     for(const source of ['physion_eval','robojudge','phyground','videophy2']){
       const count=own.filter(t=>t.record_id.startsWith(source+'::')).length;assert.ok(count>0);
@@ -31,14 +31,14 @@ test('personal links contain a single assignment and old group links retain the 
 test('personal exports include the name and task metadata, and file prefixes identify both',()=>{
   const assignment=assignmentDetails(tasks,2),task=assignedTasks(tasks,2)[0];
   const state={annotator:{id:'alice',name:'张三'},assignment,annotations:{[task.record_id]:createDraft(task.record_id,task)}};
-  const exported=makeExport(state);assert.equal(exported.annotator.name,'张三');assert.equal(exported.assignment.person,2);assert.equal(exported.assignment.record_ids.length,101);
+  const exported=makeExport(state);assert.equal(exported.annotator.name,'张三');assert.equal(exported.assignment.person,2);assert.equal(exported.assignment.record_ids.length,87);
   assert.deepEqual(normalizeExport(exported,known).assignment,assignment);
   assert.equal(personalExportPrefix('张三',2),'physfix_张三_任务2');
-  exported.assignment.record_ids.pop();assert.equal(state.assignment.record_ids.length,101);
+  exported.assignment.record_ids.pop();assert.equal(state.assignment.record_ids.length,87);
 });
 test('malformed assignment metadata cannot point to unknown or duplicate records',()=>{
   const assignment=assignmentDetails(tasks,1);assert.deepEqual(normalizeAssignment(assignment,known),assignment);
-  for(const change of [a=>a.person=7,a=>a.participants=0,a=>a.record_ids=['unknown'],a=>a.record_ids.push(a.record_ids[0])]){
+  for(const change of [a=>a.person=8,a=>a.participants=0,a=>a.record_ids=['unknown'],a=>a.record_ids.push(a.record_ids[0])]){
     const bad=structuredClone(assignment);change(bad);assert.throws(()=>normalizeAssignment(bad,known));
   }
 });

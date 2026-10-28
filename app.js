@@ -1,19 +1,23 @@
-import {DATASET,SCHEMA_VERSION,VERDICTS,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=9-name';
+import {DATASET,SCHEMA_VERSION,VERDICTS,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=10-shared';
 import {VideoDelivery} from './video-delivery.js?v=8-full';
 import {loadDataset} from './dataset-loader.js?v=8-full';
 import {SegmentPlayer} from './segment-player.js?v=8-full';
 import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=8-full';
 import {PlaybackTracker,playbackAssessment} from './playback.js?v=8-full';
 import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=8-full';
-import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=9-name';
-import {PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=9-name';
+import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=10-shared';
+import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=10-shared';
+import {RegistryClient,RegistryError} from './registry-client.js?v=10-shared';
+import {REGISTRY_API} from './registry-config.js?v=10-shared';
+const registry=new RegistryClient(REGISTRY_API);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const STORAGE_KEY='physfix.workspace.v1';
-let tasks=[],currentIndex=0,mergedFiles=[],mergedRows=[],reviewSummary=null,toastTimer,storageAvailable=true,legacyLocal=false,entered=false,ready=false,person=null;
+let tasks=[],currentIndex=0,mergedFiles=[],mergedRows=[],reviewSummary=null,toastTimer,storageAvailable=true,legacyLocal=false,entered=false,ready=false,person=null,registration=null,entering=false;
 let state={schema_version:SCHEMA_VERSION,annotator:{id:crypto.randomUUID(),name:''},annotations:{},current_id:null,group:'all',source_filter:'all'};
 try{const raw=localStorage.getItem(STORAGE_KEY);if(raw){const saved=JSON.parse(raw);if(saved?.annotator?.id&&saved.annotations&&typeof saved.annotations==='object'){state={...state,...saved};legacyLocal=saved.schema_version!==SCHEMA_VERSION;if(legacyLocal&&!localStorage.getItem(STORAGE_KEY+'.before-cards')){try{localStorage.setItem(STORAGE_KEY+'.before-cards',raw);}catch{}}}}}catch{storageAvailable=false;}
 const video=$('#video');
 const current=()=>tasks[currentIndex];
+const isAdmin=()=>registration?.role==='admin';
 const ownTasks=()=>assignedTasks(tasks,person);
 const selectedTasks=()=>groupTasks(ownTasks(),state.group,state.source_filter);
 const active=()=>state.annotations[current()?.record_id];
@@ -29,7 +33,7 @@ delivery.mode=['auto','site','original'].includes(state.video_source)?state.vide
 const segment=new SegmentPlayer(video,{onActiveChange:index=>{$$('.issue').forEach(el=>el.classList.toggle('active',index!==null&&Number(el.dataset.issue)===index));},onError:toast});
 function draftStatus(){const a=active(),stage=annotationStage(a);document.getElementById('draft-status').dataset.status=a?.status||'draft';$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[a.verdict]||''}`:stage==='draft'?'草稿已保存':'预标注';}
 function renderGroups(){
-  $('#group-filter').hidden=person!==null;$('#merge-button').hidden=person!==null;$('#copy-group-link').textContent=person===null?'复制组链接':'复制任务链接';
+  $('#group-filter').hidden=person!==null;$('#merge-button').hidden=!isAdmin();$('#manage-button').hidden=!isAdmin();$('#copy-group-link').textContent='复制入口链接';
   if(person!==null){$('#group-filter').innerHTML='<option value="all">我的任务</option>';$('#group-filter').value='all';return;}
   const source=state.source_filter,all=groupTasks(tasks,'all',source);
   $('#group-filter').innerHTML='<option value="all">全部 '+all.length+' 条</option>'+Array.from({length:Math.ceil(tasks.length/GROUP_SIZE)},(_,i)=>({i,list:groupTasks(tasks,String(i),source)})).filter(v=>v.list.length).map(({i})=>`<option value="${i}">${i*GROUP_SIZE+1}–${Math.min((i+1)*GROUP_SIZE,tasks.length)}</option>`).join('');
@@ -64,15 +68,17 @@ function showTask(index){
 }
 function navigate(delta){const selected=selectedTasks(),position=selected.findIndex(t=>t.record_id===current()?.record_id),next=selected[position+delta];if(next)showTask(tasks.indexOf(next));}
 function playCard(el){if(!el)return;const timestamp=el.querySelector('[data-field="timestamp"]').value;segment.play(timestamp,Number(el.dataset.issue));}
-function submit(verdict){
+async function submit(verdict){
   if(!entered||!current()||!Object.hasOwn(VERDICTS,verdict))return;
   if(!state.annotator.name)return;
   const a={...readForm(),verdict},errors=validateAnnotation(a);if(errors.length){$('#form-error').textContent=errors.join('\n');$('#form-error').hidden=false;return;}
+  const taskId=a.record_id,revision=active()?.revision;$$('.submission-actions button').forEach(b=>b.disabled=true);
+  try{await registry.check();if(current()?.record_id!==taskId||active()?.revision!==revision){toast('视频或标注已变化，请重新提交。');return;}}catch(error){toast(error.message);if([403,410].includes(error.status)){backToEntry();$('#entry-export').hidden=false;$('#entry-error').textContent='任务已调整，请重新填写姓名进入。';$('#entry-error').hidden=false;}return;}finally{$$('.submission-actions button').forEach(b=>b.disabled=false);}
   a.submitted_watch=watch.capture(true);a.watch=a.submitted_watch;a.status='submitted';a.updated_at=now();a.revision=(active()?.revision||0)+1;state.annotations[a.record_id]=a;
   const saved=persist();renderQueue();draftStatus();const nextId=nextWarmId();toast(saved?(nextId?`已提交：${shortResults[verdict]}`:'本组已完成，请导出 JSON。'):'已保留在内存，请立即导出 JSON。');if(saved&&nextId)showTask(tasks.findIndex(t=>t.record_id===nextId));
 }
 function download(data,prefix){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=`${prefix}_${now().replace(/[:.]/g,'-')}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);}
-function exportPersonal(){watch.capture(true);if(!state.annotator.name.trim()){toast('请先填写姓名。');$('#entry-name').focus();return;}download(makeExport(state),personalExportPrefix(state.annotator.name,person));}
+function exportPersonal(){watch.capture(true);if(!state.annotator.name.trim()){toast('请先填写姓名。');$('#entry-name').focus();return;}download(makeExport(state),personalExportPrefix(state.annotator.name,registration?.person??person));}
 function renderMerge(){
   reviewSummary=buildReviewSummary(mergedFiles,tasks.map(t=>t.record_id),Number($('#minimum-reviews').value));
   mergedRows=reviewSummary.samples.filter(r=>r.reviewer_count>0);
@@ -87,41 +93,58 @@ function renderMerge(){
 }
 function exportMerged(onlyPassed=false){download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:onlyPassed?'consensus_problem_set':'merged_review',exported_at:now(),minimum_reviewers:reviewSummary.minimum,detail_review_required:true,coverage:reviewSummary.coverage,playback_screening:reviewSummary.screening,annotators:reviewSummary.annotators,samples:onlyPassed?mergedRows.filter(r=>r.eligible):mergedRows},onlyPassed?'physfix_consensus':'physfix_merged');}
 
-function enterAnnotation(value){
-  if(!ready)return;
-  try{
-    const name=normalizeName(value),store={getItem:key=>{try{return localStorage.getItem(key);}catch{return null;}},setItem:(key,data)=>localStorage.setItem(key,data)};
-    const selection=$('#entry-assignment').value;
-    if(selection!=='all'&&!validPerson(selection))throw new Error('请选择自己的任务。');
-    const next=openNamedWorkspace(state,name,store);
-    const legacy=next.schema_version!==SCHEMA_VERSION;
-    for(const [id,a] of Object.entries(next.annotations)){const task=tasks.find(t=>t.record_id===id);if(task)next.annotations[id]=upgradeAnnotation(a,task,legacy);}
-    state=next;state.schema_version=SCHEMA_VERSION;person=selection==='all'?null:validPerson(selection);state.assignment=assignmentDetails(tasks,person);
-    $('#annotator-name').textContent=state.annotator.name;$('#annotator-name').title=state.annotator.name;
-    delivery.mode=['auto','site','original'].includes(state.video_source)?state.video_source:'auto';$('#video-source').value=delivery.mode;
-    const params=new URLSearchParams(location.search);if(person!==null){state.group='all';params.delete('group');params.delete('source');params.delete('sample');state.source_filter='all';}
-    const scope=ownTasks(),start=resolveStartTask(scope,state,params);state.group=start.group;state.source_filter=start.source;
-    $('#source-filter').innerHTML='<option value="all">全部来源</option>'+Object.entries(SOURCE_LABELS).map(([value,name])=>({value,name,count:scope.filter(t=>sourceOf(t)===value).length})).filter(v=>v.count).map(({value,name,count})=>`<option value="${value}">${name}（${count}）</option>`).join('');$('#source-filter').value=start.source;renderGroups();
-    if(person!==null||!['group','source','sample'].some(key=>params.has(key)))history.replaceState(null,'',assignmentLink(location.href,person));
-    $('#search').value='';$('#status-filter').value='all';$('#entry-export').hidden=true;
-    entered=true;$('#entry').hidden=true;$('#annotation-app').hidden=false;$('#entry-error').hidden=true;
-    showTask(tasks.indexOf(scope[start.index]));
-  }catch(error){$('#entry-error').textContent=error.message;$('#entry-error').hidden=false;$('#entry-export').hidden=!state.annotator.name||!Object.keys(state.annotations).length;}
+async function enterAnnotation(value){
+ if(!ready||entering)return;entering=true;$('#enter-button').disabled=true;$('#enter-button').textContent='正在领取…';
+ try{
+  const name=normalizeName(value),store={getItem:key=>{try{return localStorage.getItem(key);}catch{return null;}},setItem:(key,data)=>localStorage.setItem(key,data)};
+  let next=openNamedWorkspace(state,name,store);const legacy=next.schema_version!==SCHEMA_VERSION;
+  for(const [id,a] of Object.entries(next.annotations)){const task=tasks.find(t=>t.record_id===id);if(task)next.annotations[id]=upgradeAnnotation(a,task,legacy);}
+  const claimed=await registry.claim(name,next.annotator.id,ASSIGNMENT_PLAN);registration=claimed;
+  if(claimed.annotator.name!==name)next=openNamedWorkspace(state,claimed.annotator.name,store);
+  state=next;state.schema_version=SCHEMA_VERSION;state.annotator=claimed.annotator;state.registration=claimed;
+  person=claimed.role==='admin'&&new URLSearchParams(location.search).get('view')==='all'?null:claimed.person;
+  state.assignment=assignmentDetails(tasks,claimed.person);if(state.assignment)state.assignment.claim_id=claimed.claim_id;
+  state.group='all';state.source_filter='all';$('#annotator-name').textContent=state.annotator.name;$('#annotator-name').title=state.annotator.name;
+  delivery.mode=['auto','site','original'].includes(state.video_source)?state.video_source:'auto';$('#video-source').value=delivery.mode;
+  refreshScope();entered=true;$('#entry').hidden=true;$('#annotation-app').hidden=false;$('#entry-error').hidden=true;$('#entry-export').hidden=true;
+  history.replaceState(null,'',new URL(location.pathname,location.href).href);
+  const selected=selectedTasks(),resumed=selected.find(t=>t.record_id===state.current_id)||selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0];showTask(tasks.indexOf(resumed));
+ }catch(error){$('#entry-error').textContent=error.message;$('#entry-error').hidden=false;$('#entry-export').hidden=!state.annotator.name||!Object.keys(state.annotations).length;}
+ finally{entering=false;$('#enter-button').disabled=!ready;$('#enter-button').textContent='进入标注';}
+}
+function refreshScope(){
+ const scope=ownTasks();$('#source-filter').innerHTML='<option value="all">全部来源</option>'+Object.entries(SOURCE_LABELS).map(([value,name])=>({value,name,count:scope.filter(t=>sourceOf(t)===value).length})).filter(v=>v.count).map(({value,name,count})=>`<option value="${value}">${name}（${count}）</option>`).join('');
+ $('#source-filter').value='all';$('#search').value='';$('#status-filter').value='all';renderGroups();
+}
+function backToEntry(){
+ segment.stop();watch.detach();video.pause();delivery.dispose();video.removeAttribute('src');video.load();persist();entered=false;
+ $('#annotation-app').hidden=true;$('#entry').hidden=false;$('#entry-name').value=state.annotator.name;$('#entry-name').focus();$('#entry-name').select();
 }
 $('#entry-name').value=state.annotator.name;
-const linked=linkedAssignment(new URLSearchParams(location.search));$('#entry-assignment').value=linked;$('#entry-assignment-row').hidden=!!linked;
-if(linked){$('#entry-task').hidden=false;$('#entry-task').textContent=linked==='all'?'全部任务':`第 ${linked} 份任务`;}
 $('#entry-form').onsubmit=e=>{e.preventDefault();enterAnnotation($('#entry-name').value);};
 $('#entry-name').oninput=()=>{$('#entry-error').hidden=true;};
-$('#entry-export').onclick=exportPersonal;
-$('#change-person').onclick=()=>{
-  segment.stop();watch.detach();video.pause();delivery.dispose();video.removeAttribute('src');video.load();persist();
-  entered=false;$('#annotation-app').hidden=true;$('#entry').hidden=false;$('#entry-name').value=state.annotator.name;$('#entry-assignment-row').hidden=false;$('#entry-assignment').value=person===null?'all':String(person);$('#entry-task').hidden=true;$('#entry-name').focus();$('#entry-name').select();
+$('#entry-export').onclick=exportPersonal;$('#change-person').onclick=backToEntry;
+async function renderManagement(){
+ try{
+  const data=await registry.list();$('#management-status').textContent=`已领取 ${data.claims.filter(c=>c.slot!==null).length} / ${data.participants} 份`;
+  $('#management-body').innerHTML=data.claims.map(c=>`<tr><td>${h(c.display_name)}${c.role==='admin'?'（管理员）':''}</td><td>${c.slot===null?'未领任务':'第 '+c.slot+' 份 · '+c.task_count+' 条'}</td><td>${c.claim_id===registration?.claim_id?'当前人员':`<button data-reassign="${h(c.claim_id)}">转交</button> <button data-release="${h(c.claim_id)}">释放</button>`}</td></tr>`).join('');
+  $('#view-all-tasks').textContent=person===null?'查看我的任务':'查看全部任务';$('#view-all-tasks').disabled=person===null&&registration?.person===null;
+ }catch(error){$('#management-status').textContent=error.message;}
+}
+$('#manage-button').onclick=()=>{$('#management-dialog').showModal();renderManagement();};$('#close-management').onclick=()=>$('#management-dialog').close();
+$('#management-body').onclick=async e=>{
+ const release=e.target.closest('[data-release]'),reassign=e.target.closest('[data-reassign]');if(!release&&!reassign)return;
+ try{
+  if(release){if(!window.confirm('释放这份任务，供其他人重新领取？已有本机标注不会被删除。'))return;await registry.release(release.dataset.release);}
+  else{const name=window.prompt('将这份任务转交给谁？请输入姓名。');if(!name)return;await registry.reassign(reassign.dataset.reassign,normalizeName(name));}
+  await renderManagement();
+ }catch(error){toast(error.message);}
 };
+$('#view-all-tasks').onclick=()=>{person=person===null?registration.person:null;state.group='all';state.source_filter='all';refreshScope();$('#management-dialog').close();const selected=selectedTasks();showTask(tasks.indexOf(selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0]));};
 $('#queue').onclick=e=>{const button=e.target.closest('[data-index]');if(button)showTask(Number(button.dataset.index));};
 $('#search').oninput=renderQueue;$('#status-filter').onchange=renderQueue;
 $('#resume-button').onclick=()=>{const next=selectedTasks().find(t=>state.annotations[t.record_id]?.status!=='submitted');if(next){$('#status-filter').value='pending';$('#search').value='';showTask(tasks.indexOf(next));}};
-$('#copy-group-link').onclick=async()=>{const url=person===null?groupLink(location.href,state.group,state.source_filter):assignmentLink(location.href,person);try{await navigator.clipboard.writeText(url);toast(person===null?'分组链接已复制':'任务链接已复制');}catch{window.prompt('复制分组链接',url);}};
+$('#copy-group-link').onclick=async()=>{const url=new URL(location.pathname,location.href).href;try{await navigator.clipboard.writeText(url);toast('入口链接已复制');}catch{window.prompt('复制分组链接',url);}};
 $('#source-filter').onchange=()=>{state.source_filter=$('#source-filter').value;state.group='all';renderGroups();const selected=selectedTasks();showTask(tasks.indexOf(selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0]));};
 $('#group-filter').onchange=()=>{state.group=$('#group-filter').value;const selected=selectedTasks();showTask(tasks.indexOf(selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0]));};
 $('#prev-button').onclick=()=>navigate(-1);$('#next-button').onclick=()=>navigate(1);
@@ -138,7 +161,7 @@ video.addEventListener('timeupdate',updateTime);
 video.addEventListener('loadedmetadata',()=>{updateTime();if(active()&&Number.isFinite(video.duration)&&video.duration>0){active().duration=video.duration;persist();}});
 $('#retry-video').onclick=()=>{segment.stop();delivery.retry();};$('#video-source').onchange=()=>{segment.stop();state.video_source=$('#video-source').value;persist();delivery.setMode(state.video_source);};
 $('#export-button').onclick=exportPersonal;$('#restore-button').onclick=()=>$('#restore-file').click();
-$('#restore-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw new Error('文件不能超过 10 MB。');const data=normalizeExport(JSON.parse(await file.text()),new Set(tasks.map(t=>t.record_id)));if(person!==null&&data.assignment&&data.assignment.person!==person)throw new Error(`备份属于第 ${data.assignment.person} 份任务，请从对应入口恢复。`);if(!window.confirm(`用「${data.annotator.name}」的备份替换本机进度？`))return;watch.detach();state.annotator=data.annotator;state.annotations=Object.fromEntries(data.annotations.map(a=>[a.record_id,a]));$('#annotator-name').textContent=state.annotator.name;persist();showTask(currentIndex);toast('已恢复。');}catch(error){toast(error.message);}finally{e.target.value='';}};
+$('#restore-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10000000)throw new Error('文件不能超过 10 MB。');const data=normalizeExport(JSON.parse(await file.text()),new Set(tasks.map(t=>t.record_id)));if(data.assignment?.plan===ASSIGNMENT_PLAN&&registration?.person!==null&&data.assignment.person!==registration?.person)throw new Error('备份属于其他任务，请核对标注人姓名。');if(!window.confirm(`用「${data.annotator.name}」的备份替换本机进度？`))return;watch.detach();state.annotator=registration?.annotator||data.annotator;state.annotations=Object.fromEntries(data.annotations.map(a=>[a.record_id,a]));$('#annotator-name').textContent=state.annotator.name;persist();showTask(currentIndex);toast('已恢复。');}catch(error){toast(error.message);}finally{e.target.value='';}};
 $('#merge-button').onclick=()=>{$('#merge-dialog').showModal();renderMerge();};$('#close-merge').onclick=()=>$('#merge-dialog').close();$('#merge-import').onclick=()=>$('#merge-file').click();
 $('#merge-file').onchange=async e=>{const errors=[];for(const file of [...e.target.files]){try{if(file.size>10000000)throw new Error('文件不能超过 10 MB。');mergedFiles.push(normalizeExport(JSON.parse(await file.text()),new Set(tasks.map(t=>t.record_id))));}catch(error){errors.push(`${file.name}：${error.message}`);}}renderMerge();if(errors.length)toast(errors.join('\n'));e.target.value='';};
 $('#merge-export-screened').onclick=()=>download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'playback_excluded',exported_at:now(),playback_screening:reviewSummary.screening,records:reviewSummary.screened_out},'physfix_playback_excluded');
@@ -155,8 +178,6 @@ async function init(){try{
   const manifest=await manifestRequest;
   delivery.setManifest({videos:Object.fromEntries(tasks.map(t=>[t.record_id,{...manifest?.videos?.[t.record_id],upstream_file:t.video_file}]))});
   $('#source-filter').innerHTML='<option value="all">全部来源</option>'+Object.entries(SOURCE_LABELS).map(([value,name])=>`<option value="${value}">${name}（${tasks.filter(t=>sourceOf(t)===value).length}）</option>`).join('');
-  $('#entry-assignment').innerHTML='<option value="">请选择自己的任务</option>'+Array.from({length:PARTICIPANT_COUNT},(_,i)=>`<option value="${i+1}">第 ${i+1} 份（${assignedTasks(tasks,i+1).length} 条）</option>`).join('')+'<option value="all">全部任务（负责人）</option>';$('#entry-assignment').value=linked;
-  if(linked&&linked!=='all')$('#entry-task').textContent=`第 ${linked} 份 · ${assignedTasks(tasks,validPerson(linked)).length} 条`;
   ready=true;$('#enter-button').disabled=false;
 }catch(error){$('#entry-error').hidden=false;$('#entry-error').textContent=`加载失败：${error.message}`;}}
 init();

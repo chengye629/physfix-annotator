@@ -1,4 +1,4 @@
-import {normalizeAssignment} from './assignments.js?v=9-name';
+import {normalizeAssignment} from './assignments.js?v=10-shared';
 import {normalizePlayback} from './playback.js?v=8-full';
 import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=8-full';
 export {DATASET};

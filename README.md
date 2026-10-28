@@ -27,7 +27,7 @@ npm start
 npm test
 ```
 
-推送 main 后由 GitHub Pages 发布，根目录 `.nojekyll`。任务链接支持 `?group=1` 到 `?group=13`、`?source=robojudge`，以及完整 record_id / dir_name 或唯一短编号的 `?sample=`。每组 50 条，最后一组 6 条；来源筛选可与分组结合。原来的前 300 条顺序及前 6 组链接保持不变。
+推送 main 后由 GitHub Pages 发布，根目录 `.nojekyll`。所有成员统一使用网站根地址，填写姓名后由共享登记服务领取任务。原始完整索引及前 300 条顺序保持不变，管理员可查看全部视频和分组。
 
 数据来自 [PhysFixBench](https://github.com/SiyuanMaCS/PhysFixBench)（完整数据源提交 31d3ca543b1a586d48dd9e646c82f70dde63a746），视频来自 [HuggingFriends/PhysFixBench](https://huggingface.co/datasets/HuggingFriends/PhysFixBench/tree/main/videos)，交互最初参考 [MLLM-as-Embodied-World-Judge-Annotation](https://github.com/SiyuanMaCS/MLLM-as-Embodied-World-Judge-Annotation)。四份上游 JSONL 原样保留；完整索引按 Physion → RoboJudge → PhyGround → VideoPhy2 合并，只追加经核对的视频文件名 `video_file`。数据清单和版本见 `data/dataset-manifest.json`。视频分别遵循 Physion-Eval、RoboJudge、PhyGround、VideoPhy2 各来源数据集许可，仅用于非商业研究与评测；公开镜像不改变上游许可。
 
@@ -43,7 +43,7 @@ npm test
 - 可筛选待补标、分歧、一致通过或一致拒绝。点击视频编号进入自己的预标注复核，其他人的文字不会自动覆盖本机卡片。
 - 全部汇总与一致通过导出增加 `coverage`、`annotators`。`review_queue` 导出列出未标注、人数不足、存在分歧的记录，包含缺少人数、是否需仲裁与已参与者 ID，不包含他人的问题描述。
 
-这些功能位于 `workflow.js`，保留原个人 JSON schema v2 与 v1 导入兼容性。网页继续无需账户、服务器数据库或额外服务，个人结果仍通过 JSON 集中回收。
+这些功能位于 `workflow.js`，保留原个人 JSON schema v2 与 v1 导入兼容性。标注结果仍保存在本机，通过 JSON 集中回收；共享后端只登记姓名、任务领取与管理信息。
 
 ## 播放记录筛选
 
@@ -75,10 +75,12 @@ node scripts/filter-playback.mjs --out screened-results alice.json bob.json
 
 姓名入口用于本机区分标注人，不连接账号服务器。当前六人任务分配见下节；现有分组链接在填写姓名后仍按链接定位。
 
-## 当前六人分配
+## 七人统一入口与管理员
 
-当前 606 条固定分为六份，每人 101 条。按完整索引位置轮流分配到六人，每条仅进入一份；每人均覆盖四个来源，原始 record_id 不变。入口为 `?person=1` 至 `?person=6`，每位同事只需收到一个链接、填写姓名并进入。普通入口可选择任务；负责人选择「全部任务」，旧分组链接仍可使用。
+所有人访问同一个地址：https://chengye629.github.io/physfix-annotator/ ，只填写姓名，不选择任务编号，也不需要不同的个人链接。606 条按七人分成 4 份 87 条、3 份 86 条，首次领取顺序确定任务份；相同姓名重复进入会返回原领取记录，不重复占位。任务位与姓名的唯一约束、领取批处理由共享数据库执行。英文姓名不区分大小写，首尾空格会去掉。
 
-个人界面只列出当前份的任务，预加载和“下一条”均限制在这份任务内。JSON 文件名带姓名和任务编号，内容增加 `assignment`（计划、总人数、任务编号及 record_ids）。已有个人历史进度仍保留在备份中，不因分配而删除。当前每条分给一人，汇总的最少人数默认 1，需要交叉复核时可手动提高。
+叶程、马思远按姓名识别为管理员，进入后自动显示「管理」「汇总」。管理界面可查看领取情况、释放任务或转交给其他姓名，并可切换查看全部 606 条。普通成员仅显示自己的任务。这里采用内部团队的姓名识别方式，不做注册密码等正式账号认证。
 
-任务链接用于固定分工；任务入口没有中央抢占或在线名单登记，同一份链接应只发给一位同事。人数变化时更新分配计划，不会假定仅凭输入姓名就能跨设备自动抢占不同任务。
+提交前会核对领取记录；若管理员已调整任务，保留本机进度并返回入口。文件名仍带姓名、任务编号和时间，备份保留任务计划、领取记录 ID 和所有本机历史标注；导出不包含管理会话令牌。旧六人计划和旧个人 JSON 仍可导入，原编辑不会因人数调整而删除。
+
+后端只保存登记及任务管理信息，不保存标注卡片、播放记录或 JSON 结果；换设备需要导入自己的备份以恢复标注内容。后端源码在 backend/registry/，部署绑定见其中 .openai/hosting.json，前端接口地址见 registry-config.js。
