@@ -3,11 +3,23 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=8-full"><script type="module" src="./app.js?v=8-full"></script>
+  <link rel="stylesheet" href="./style.css?v=9-name"><script type="module" src="./app.js?v=9-name"></script>
 </head>
 <body>
+  <section id="entry" aria-label="填写姓名">
+    <form id="entry-form" class="entry-card">
+      <h1>视频标注</h1><span id="entry-task" hidden></span>
+      <label for="entry-name">姓名</label>
+      <input id="entry-name" name="name" maxlength="32" placeholder="请输入姓名" autocomplete="name" required autofocus>
+      <div id="entry-assignment-row"><label for="entry-assignment">任务</label><select id="entry-assignment"><option value="">请选择自己的任务</option><option value="1">第 1 份（101 条）</option><option value="2">第 2 份（101 条）</option><option value="3">第 3 份（101 条）</option><option value="4">第 4 份（101 条）</option><option value="5">第 5 份（101 条）</option><option value="6">第 6 份（101 条）</option><option value="all">全部任务（负责人）</option></select></div>
+      <p id="entry-error" class="error" role="alert" hidden></p>
+      <button id="enter-button" type="submit" disabled>进入标注</button>
+      <button id="entry-export" type="button" hidden>导出当前进度</button>
+    </form>
+  </section>
+  <div id="annotation-app" hidden>
   <header>
-    <strong>视频标注</strong><label>标注人 <input id="annotator-name" maxlength="32" placeholder="姓名" autocomplete="nickname" required></label><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
+    <strong>视频标注</strong><div class="annotator-identity"><span>标注人</span><strong id="annotator-name"></strong><button type="button" id="change-person">切换</button></div><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
     <div class="header-actions"><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="merge-button">汇总</button></div>
   </header>
   <div class="layout">
@@ -41,9 +53,10 @@
       </div>
     </main>
   </div>
+  </div>
   <dialog id="merge-dialog">
     <div class="dialog-heading"><strong>结果汇总</strong><button id="close-merge">关闭</button></div>
-    <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><label>最少人数 <select id="minimum-reviews"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><label>查看 <select id="merge-filter"><option value="received">已导入记录</option><option value="needs_more">待补标</option><option value="conflict">有分歧</option><option value="eligible">一致通过</option><option value="excluded">一致拒绝</option><option value="all">全部视频</option></select></label></div>
+    <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><label>最少人数 <select id="minimum-reviews"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><label>查看 <select id="merge-filter"><option value="received">已导入记录</option><option value="needs_more">待补标</option><option value="conflict">有分歧</option><option value="eligible">一致通过</option><option value="excluded">一致拒绝</option><option value="all">全部视频</option></select></label></div>
     <p id="merge-status">未导入</p><details id="annotator-progress" hidden><summary>标注人进度</summary><div class="table-scroll"><table><thead><tr><th>标注人</th><th>已提交</th><th>通过</th><th>无明确问题</th><th>质量差</th></tr></thead><tbody id="annotator-body"></tbody></table></div></details><div class="table-scroll"><table><thead><tr><th>视频</th><th>判定</th><th>状态</th><th>卡片</th></tr></thead><tbody id="merge-body"></tbody></table></div>
     <div class="merge-tools"><button id="merge-export" disabled>导出全部汇总</button><button id="merge-export-valid" disabled>导出一致通过</button><button id="merge-export-review" disabled>导出待复核清单</button><button id="merge-export-screened" disabled>导出播放筛除记录</button></div>
   </dialog>
