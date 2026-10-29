@@ -1,3 +1,4 @@
+import {PARTICIPANT_COUNT} from './participants.js?v=11-roster';
 export class RegistryError extends Error{constructor(message,status=0,code=''){super(message);Object.assign(this,{status,code});}}
 export class RegistryClient{
  constructor(base,{fetcher=(...args)=>fetch(...args)}={}){this.base=base?.replace(/\/$/,'');this.fetcher=fetcher;this.session=null;}
@@ -13,7 +14,7 @@ export class RegistryClient{
  }
  async claim(name,annotatorId,expectedPlan){
   const data=await this.request('/api/claim',{body:{name,annotator_id:annotatorId},token:null});
-  if(data.plan!==expectedPlan||data.participants!==7||!data.token||!data.claim_id||!data.annotator?.id||!data.annotator?.name||!['member','admin'].includes(data.role)||(data.person===null?data.role!=='admin':!Number.isInteger(data.person)||data.person<1||data.person>7))throw new RegistryError('任务分配版本不一致，请刷新网页。');
+  if(data.plan!==expectedPlan||data.participants!==PARTICIPANT_COUNT||!data.token||!data.claim_id||!data.annotator?.id||!data.annotator?.name||!['member','admin'].includes(data.role)||(data.person===null?data.role!=='admin':!Number.isInteger(data.person)||data.person<1||data.person>PARTICIPANT_COUNT))throw new RegistryError('任务分配版本不一致，请刷新网页。');
   this.session=data;const {token,...registration}=data;return registration;
  }
  async check(){if(!this.session)throw new RegistryError('请重新填写姓名进入。',403);const data=await this.request('/api/lease?claim_id='+encodeURIComponent(this.session.claim_id));if(data.claim_id!==this.session.claim_id||data.person!==this.session.person||data.annotator.id!==this.session.annotator.id||data.plan!==this.session.plan)throw new RegistryError('任务已调整，请重新进入。',410);return data;}

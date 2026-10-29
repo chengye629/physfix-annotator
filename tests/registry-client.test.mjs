@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RegistryClient} from '../registry-client.js';
-const plan='physfixbench-batch1-seven-v1';
-const claim={plan,participants:7,person:1,claim_id:'claim-a',token:'session-only',annotator:{id:'person-a',name:'张三'},role:'member'};
+const plan='physfixbench-batch1-nine-v1';
+const claim={plan,participants:9,person:1,claim_id:'claim-a',token:'session-only',annotator:{id:'person-a',name:'张三'},role:'member'};
 test('registration uses a shared service and keeps the session token out of returned backup metadata',async()=>{
  const calls=[],client=new RegistryClient('https://registry.test',{fetcher:async(url,options)=>{calls.push({url,options});return new Response(JSON.stringify(claim));}});
  const result=await client.claim('张三','old-id',plan);assert.equal(result.person,1);assert.equal(result.annotator.name,'张三');assert.equal(result.token,undefined);assert.equal(client.session.token,'session-only');

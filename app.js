@@ -1,14 +1,15 @@
-import {DATASET,SCHEMA_VERSION,VERDICTS,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=10-shared';
+import {DATASET,SCHEMA_VERSION,VERDICTS,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=11-roster';
 import {VideoDelivery} from './video-delivery.js?v=8-full';
 import {loadDataset} from './dataset-loader.js?v=8-full';
 import {SegmentPlayer} from './segment-player.js?v=8-full';
 import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=8-full';
 import {PlaybackTracker,playbackAssessment} from './playback.js?v=8-full';
 import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=8-full';
-import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=10-shared';
-import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=10-shared';
-import {RegistryClient,RegistryError} from './registry-client.js?v=10-shared';
-import {REGISTRY_API} from './registry-config.js?v=10-shared';
+import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=11-roster';
+import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=11-roster';
+import {participantFor} from './participants.js?v=11-roster';
+import {RegistryClient,RegistryError} from './registry-client.js?v=11-roster';
+import {REGISTRY_API} from './registry-config.js?v=11-roster';
 const registry=new RegistryClient(REGISTRY_API);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const STORAGE_KEY='physfix.workspace.v1';
@@ -96,7 +97,7 @@ function exportMerged(onlyPassed=false){download({schema_version:SCHEMA_VERSION,
 async function enterAnnotation(value){
  if(!ready||entering)return;entering=true;$('#enter-button').disabled=true;$('#enter-button').textContent='正在领取…';
  try{
-  const name=normalizeName(value),store={getItem:key=>{try{return localStorage.getItem(key);}catch{return null;}},setItem:(key,data)=>localStorage.setItem(key,data)};
+  const input=normalizeName(value),name=participantFor(input)?.name??input,store={getItem:key=>{try{return localStorage.getItem(key);}catch{return null;}},setItem:(key,data)=>localStorage.setItem(key,data),keys:()=>{try{return Object.keys(localStorage);}catch{return [];}}};
   let next=openNamedWorkspace(state,name,store);const legacy=next.schema_version!==SCHEMA_VERSION;
   for(const [id,a] of Object.entries(next.annotations)){const task=tasks.find(t=>t.record_id===id);if(task)next.annotations[id]=upgradeAnnotation(a,task,legacy);}
   const claimed=await registry.claim(name,next.annotator.id,ASSIGNMENT_PLAN);registration=claimed;
@@ -126,8 +127,8 @@ $('#entry-name').oninput=()=>{$('#entry-error').hidden=true;};
 $('#entry-export').onclick=exportPersonal;$('#change-person').onclick=backToEntry;
 async function renderManagement(){
  try{
-  const data=await registry.list();$('#management-status').textContent=`已领取 ${data.claims.filter(c=>c.slot!==null).length} / ${data.participants} 份`;
-  $('#management-body').innerHTML=data.claims.map(c=>`<tr><td>${h(c.display_name)}${c.role==='admin'?'（管理员）':''}</td><td>${c.slot===null?'未领任务':'第 '+c.slot+' 份 · '+c.task_count+' 条'}</td><td>${c.claim_id===registration?.claim_id?'当前人员':`<button data-reassign="${h(c.claim_id)}">转交</button> <button data-release="${h(c.claim_id)}">释放</button>`}</td></tr>`).join('');
+  const data=await registry.list();$('#management-status').textContent=`已领取 ${data.claims.filter(c=>c.claim_id).length} / ${data.participants} 份`;
+  $('#management-body').innerHTML=data.claims.map(c=>`<tr><td>${h(c.display_name)}${c.role==='admin'?'（管理员）':''}</td><td>${c.slot===null?'未领任务':'第 '+c.slot+' 份 · '+c.task_count+' 条'}</td><td>${!c.claim_id?'未进入':c.claim_id===registration?.claim_id?'当前人员':`<button data-reassign="${h(c.claim_id)}">转交</button> <button data-release="${h(c.claim_id)}">重置</button>`}</td></tr>`).join('');
   $('#view-all-tasks').textContent=person===null?'查看我的任务':'查看全部任务';$('#view-all-tasks').disabled=person===null&&registration?.person===null;
  }catch(error){$('#management-status').textContent=error.message;}
 }
@@ -135,7 +136,7 @@ $('#manage-button').onclick=()=>{$('#management-dialog').showModal();renderManag
 $('#management-body').onclick=async e=>{
  const release=e.target.closest('[data-release]'),reassign=e.target.closest('[data-reassign]');if(!release&&!reassign)return;
  try{
-  if(release){if(!window.confirm('释放这份任务，供其他人重新领取？已有本机标注不会被删除。'))return;await registry.release(release.dataset.release);}
+  if(release){if(!window.confirm('重置此人的登记？重新填写姓名后仍进入原任务，已有本机标注不会被删除。'))return;await registry.release(release.dataset.release);}
   else{const name=window.prompt('将这份任务转交给谁？请输入姓名。');if(!name)return;await registry.reassign(reassign.dataset.reassign,normalizeName(name));}
   await renderManagement();
  }catch(error){toast(error.message);}

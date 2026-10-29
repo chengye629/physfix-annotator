@@ -1,5 +1,5 @@
-export const PARTICIPANT_COUNT=7;
-export const ASSIGNMENT_PLAN='physfixbench-batch1-seven-v1';
+import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=11-roster';
+export {PARTICIPANT_COUNT,ASSIGNMENT_PLAN};
 export function validPerson(value){const number=Number(value);return /^\d+$/.test(String(value))&&Number.isInteger(number)&&number>=1&&number<=PARTICIPANT_COUNT?number:null;}
 export function assignedTasks(tasks,person=null){return person===null?tasks:tasks.filter((task,index)=>index%PARTICIPANT_COUNT===person-1);}
 export function assignmentLink(base,person){const url=new URL(base);url.search='';url.hash='';if(person===null)url.searchParams.set('view','all');else{if(!validPerson(person))throw new Error('任务编号无效。');url.searchParams.set('person',String(person));}return url.href;}

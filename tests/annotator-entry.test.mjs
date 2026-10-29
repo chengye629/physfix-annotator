@@ -47,3 +47,18 @@ test('corrupt or mismatched named profiles cannot be silently loaded under anoth
   storage.setItem(profileKey('李四'),JSON.stringify(person('王五')));assert.throws(()=>openNamedWorkspace(current,'李四',storage),/格式无效/);
   assert.equal(current.annotator.name,'张三');assert.equal(storage.getItem(profileKey('张三')),null);
 });
+
+test('Chinese and English spellings share the current workspace and canonical export name',()=>{
+ const storage=memoryStorage(),current=person('Ye Cheng','legacy-id',{'video-a':{problem:'人工作业',revision:3}});
+ const next=openNamedWorkspace(current,'CHENGYE',storage);
+ assert.equal(next.annotator.name,'叶程');assert.equal(next.annotator.id,'legacy-id');assert.deepEqual(next.annotations,current.annotations);
+ assert.equal(personalExportPrefix('cheng ye',1),'physfix_叶程_任务1');
+ assert.ok(storage.getItem(profileKey('Ye Cheng')));
+});
+test('archived alias profiles are recovered and merged without replacing newer edited cards',()=>{
+ const storage=memoryStorage();storage.keys=()=>[...storage.values.keys()];
+ storage.setItem(profileKey('GAO HANQING'),JSON.stringify(person('GAO HANQING','alias-id',{'video-a':{revision:2,problem:'新修改'},'video-b':{revision:1,problem:'另一条'}})));
+ storage.setItem(profileKey('高晗晴'),JSON.stringify(person('高晗晴','canonical-id',{'video-a':{revision:1,problem:'旧草稿'}})));
+ const next=openNamedWorkspace(person('叶程'),'Hanqing Gao',storage);
+ assert.equal(next.annotator.name,'高晗晴');assert.equal(next.annotations['video-a'].problem,'新修改');assert.equal(next.annotations['video-b'].problem,'另一条');
+});
