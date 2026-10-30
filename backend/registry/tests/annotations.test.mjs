@@ -61,3 +61,13 @@ test('the old misspelled Chen registration resumes as Chen Guangyu without chang
  const alias=(await api.request('/api/claim',{name:'Chen Guangning'})).data;assert.equal(alias.annotator.name,'陈广宇');assert.equal(alias.claim_id,corrected.claim_id);
  }finally{api.DB.close();}
 });
+
+test('fallback frontend serves current UI and compressed dataset without changing API registration',async()=>{
+ const api=setup();try{
+ const response=await worker.fetch(new Request('https://registry.test/'),{DB:api.DB,PRODUCTION:true});assert.equal(response.status,200);assert.ok(response.headers.get('Content-Type').includes('text/html'));const html=await response.text();assert.ok(html.includes('value="pass_modified"'));assert.ok(html.includes('id="entry-origin-note"'));
+ const asset=await worker.fetch(new Request('https://registry.test/cloud-sync.js?v=12-cloud'),{DB:api.DB,PRODUCTION:true});assert.ok(asset.headers.get('Content-Type').includes('javascript'));
+ const compressed=await worker.fetch(new Request('https://registry.test/data/physfixbench_full.jsonl.gz?v=12-cloud'),{DB:api.DB,PRODUCTION:true});const {gunzipSync}=await import('node:zlib');assert.equal(gunzipSync(Buffer.from(await compressed.arrayBuffer())).toString('utf8').trim().split('\n').length,606);
+ const manifest=await worker.fetch(new Request('https://registry.test/data/video-manifest.json'),{DB:api.DB,PRODUCTION:true});assert.ok(Object.values((await manifest.json()).videos).every(v=>v.file.startsWith('https://chengye629.github.io/')));
+ assert.equal((await api.DB.prepare('SELECT COUNT(*) count FROM registrations').first()).count,0);
+ }finally{api.DB.close();}
+});

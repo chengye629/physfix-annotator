@@ -11,6 +11,7 @@
       <h1>视频标注</h1>
       <label for="entry-name">姓名</label>
       <input id="entry-name" name="name" maxlength="32" placeholder="中文姓名或英文拼音" autocomplete="name" required autofocus>
+      <p id="entry-origin-note" class="entry-notice" hidden>这是备用入口。旧标注还只在原浏览器中时，请先在<a href="https://chengye629.github.io/physfix-annotator/" target="_blank">原入口</a>导出 JSON，进入这里后导入备份。已同步的记录会自动恢复。</p>
       <p id="entry-error" class="error" role="alert" hidden></p>
       <button id="enter-button" type="submit" disabled>进入标注</button>
       <button id="entry-export" type="button" hidden>导出当前进度</button>

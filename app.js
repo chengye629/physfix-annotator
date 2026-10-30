@@ -132,6 +132,7 @@ function backToEntry(){
  $('#annotation-app').hidden=true;$('#entry').hidden=false;$('#entry-name').value=state.annotator.name;$('#entry-name').focus();$('#entry-name').select();
 }
 $('#entry-name').value=state.annotator.name;
+$('#entry-origin-note').hidden=!location.hostname.endsWith('.chatgpt.site');
 $('#entry-form').onsubmit=e=>{e.preventDefault();enterAnnotation($('#entry-name').value);};
 $('#entry-name').oninput=()=>{$('#entry-error').hidden=true;};
 $('#entry-export').onclick=exportPersonal;$('#change-person').onclick=backToEntry;

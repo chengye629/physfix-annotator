@@ -11,6 +11,7 @@ export function mergeCloudRecords(state,records,{isUntouched=a=>!hasProgress(a)}
   const remote=row.annotation,id=remote.record_id,local=state.annotations[id],remoteKey=fingerprint(remote),localKey=local?fingerprint(local):null;
   if(!local||isUntouched(local)||localKey===remoteKey||localKey===meta.ack[id]){
    state.annotations[id]=structuredClone(remote);meta.versions[id]=row.version;meta.ack[id]=remoteKey;delete meta.conflicts[id];
+  }else if(isUntouched(remote)){meta.versions[id]=row.version;meta.ack[id]=remoteKey;delete meta.conflicts[id];
   }else if(meta.versions[id]!==row.version){
    meta.conflicts[id]={annotation:structuredClone(remote),version:row.version,saved_at:row.saved_at};
   }

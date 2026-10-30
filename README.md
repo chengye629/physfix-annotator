@@ -4,6 +4,8 @@
 
 标注守则：https://chengye629.github.io/physfix-annotator/guide.html
 
+备用入口：https://physfix-annotator-chengye629.goldenstoat259.chatgpt.site/ 。与原站共用后台和分工；浏览器本机存储按域名隔离，旧内容尚未同步时，应在原站导出 JSON 后在备用入口导入。不要清理原站浏览器数据。
+
 606 条任务：Physion 300、RoboJudge 115、PhyGround 91、VideoPhy2 100。9 人分工保持不变，按名单固定为前三人各 68 条，其余各 67 条。
 
 ## 姓名与权限

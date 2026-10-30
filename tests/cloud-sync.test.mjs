@@ -41,3 +41,9 @@ test('edits during a network request are not accidentally marked synced',async()
  const sync=new CloudSync(registry,{getState:()=>s,delay:100000});
  try{await sync.start();const promise=sync.flush();await new Promise(resolve=>setImmediate(resolve));s.annotations[id]={...s.annotations[id],revision:5};s.annotations[id].issues=structuredClone(s.annotations[id].issues);s.annotations[id].issues[0].problem='请求期间新修改';release();await promise;assert.equal(requests,2);assert.equal(pendingRecords(s).length,0);assert.equal(s.cloud.ack[id],fingerprint(s.annotations[id]));}finally{sync.stop();}
 });
+
+test('an untouched cloud preview does not obstruct uploading prior human progress from the original domain',()=>{
+ const local=a(),s=state(local),remote=createDraft(id,task);
+ mergeCloudRecords(s,[{annotation:remote,version:1}],{isUntouched:value=>value.status==='draft'&&!value.revision&&!value.legacy&&!value.watch?.play_count&&compareApproval(value,seedIssues(task))==='direct'});
+ assert.deepEqual(s.annotations[id],local);assert.equal(pendingRecords(s).length,1);assert.equal(s.cloud.versions[id],1);assert.equal(Object.keys(s.cloud.conflicts).length,0);
+});

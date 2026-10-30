@@ -93,3 +93,5 @@ header{height:auto;min-height:72px;padding-top:12px;padding-bottom:12px;flex-wra
 .conflict-entry h3{overflow-wrap:anywhere}
 @media(min-width:801px){aside{top:var(--header-height,72px);height:calc(100dvh - var(--header-height,72px))}.video-panel{top:calc(var(--header-height,72px) + 24px)}}
 @media(max-width:600px){.header-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.header-actions button{min-width:0;font-size:12px}.example-layout,.conflict-columns{grid-template-columns:1fr}#example-list{max-height:230px;overflow:auto}}
+
+.entry-notice{font-size:13px;line-height:1.7;padding:10px 12px;background:#f0f4ff;border:1px solid #dce5fa;border-radius:8px}.entry-notice a{color:#3859b9}

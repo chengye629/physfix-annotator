@@ -1,3 +1,4 @@
+import {STATIC_ASSETS} from './static-assets.js';
 import {classifyApproval,stableStringify,outcome} from './approval.js';
 import {BASELINES} from './baselines.js';
 import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,PARTICIPANTS,participantFor,nameKey} from './participants.js';
@@ -96,6 +97,8 @@ async function handle(request,env){
  throw new ApiError(404,'接口不存在。');
 }
 export default {async fetch(request,env){
+ const assetPath=new URL(request.url).pathname;const asset=STATIC_ASSETS[assetPath==='/'?'index.html':assetPath.slice(1)];
+ if(asset&&['GET','HEAD'].includes(request.method)){const bytes=Uint8Array.from(atob(asset.data),char=>char.charCodeAt(0));return new Response(request.method==='HEAD'?null:bytes,{headers:{'Content-Type':asset.type,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'}});}
  const origin=request.headers.get('Origin'),self=new URL(request.url).origin;
  const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin','X-Content-Type-Options':'nosniff'};
  if(origin&&(origin===WEB_ORIGIN||origin===self||(env.PRODUCTION===false&&/^http:\/\/127\.0\.0\.1:\d+$/.test(origin))))headers['Access-Control-Allow-Origin']=origin;

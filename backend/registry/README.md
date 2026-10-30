@@ -19,3 +19,5 @@
 运行 npm test、npm run build；scripts/build.mjs 将名单、比较逻辑和 606 条原始卡片编入独立 Worker。db/schema.ts 为结构声明；0001 为追加迁移，仅新增标注和历史表。已应用的 0000 和原 journal 项不可修改。
 
 前端首次进入补传旧内容；backend 只添加 approval_type、approval_source 分类元数据，保留上传原文，不更改卡片、状态、修订号、时间或播放记录。
+
+现有后台域名同时提供备用前端。scripts/bundle-frontend.mjs 从前端源码生成 worker/static-assets.js，仅包含公开页面、模块与数据索引，不打包视频、个人标注或凭据；视频仍指向原 GitHub Pages 镜像。前端代码变更后应重新生成并构建。不同域名的本机存储互相隔离，迁移旧标注必须先导出 JSON 再导入，云端数据和分工共用。
