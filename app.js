@@ -1,6 +1,6 @@
 import {compareApproval} from './approval.js?v=12-cloud';
 import {CloudSync} from './cloud-sync.js?v=12-cloud';
-import {mountCloudUI} from './cloud-ui.js?v=12-cloud';
+import {mountCloudUI} from './cloud-ui.js?v=13-demo';
 import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=12-cloud';
 import {VideoDelivery} from './video-delivery.js?v=12-cloud';
 import {loadDataset} from './dataset-loader.js?v=12-cloud';
@@ -58,7 +58,7 @@ function renderQueue(){
   for(const option of $('#group-filter').options){if(option.value==='all')continue;const list=groupTasks(tasks,option.value,state.source_filter),count=list.filter(t=>state.annotations[t.record_id]?.status==='submitted').length;option.textContent=`${Number(option.value)*GROUP_SIZE+1}–${Math.min((Number(option.value)+1)*GROUP_SIZE,tasks.length)}（${count}/${list.length}）`;}
 }
 
-function issueHTML(v,i){return `<article class="issue" data-issue="${i}" tabindex="0" aria-label="问题 ${i+1}，点击播放对应片段"><div class="issue-header"><strong>问题 ${i+1}</strong><button type="button" data-play="${i}">播放片段</button><button type="button" data-remove="${i}" aria-label="删除问题 ${i+1}">删除</button></div><label>时间戳（秒）<input class="timestamp" data-field="timestamp" value="${h(v.timestamp)}" placeholder="1.0–3.5" maxlength="80" aria-label="问题 ${i+1} 时间戳"></label><label>当前视频的物理问题描述<textarea data-field="problem" rows="3" maxlength="4000" aria-label="问题 ${i+1} 物理问题描述">${h(v.problem)}</textarea></label><label>应该修改后状态的描述<textarea data-field="expected" rows="3" maxlength="4000" aria-label="问题 ${i+1} 修改后状态">${h(v.expected)}</textarea></label></article>`;}
+function issueHTML(v,i){return `<article class="issue" data-issue="${i}" tabindex="0" aria-label="问题 ${i+1}，点击播放对应片段"><div class="issue-header"><strong>问题 ${i+1}</strong><button type="button" data-play="${i}">播放片段</button><button type="button" data-remove="${i}" aria-label="删除问题 ${i+1}">删除</button></div><label>时间戳（秒）<input class="timestamp" data-field="timestamp" value="${h(v.timestamp)}" placeholder="1.0–3.5" maxlength="80" aria-label="问题 ${i+1} 时间戳"></label><label>当前视频的物理问题描述<textarea data-field="problem" rows="3" maxlength="4000" aria-label="问题 ${i+1} 物理问题描述">${h(v.problem)}</textarea></label><label>修改后应有的正确状态<textarea data-field="expected" rows="3" maxlength="4000" aria-label="问题 ${i+1} 修改后应有的正确状态">${h(v.expected)}</textarea></label></article>`;}
 function renderIssues(issues){segment.stop();$('#issues').innerHTML=issues.map(issueHTML).join('');$('#add-issue').disabled=issues.length>=50;}
 function readForm(){watch.capture(true);const old=active()||createDraft(current().record_id,current());return {...old,issues:$$('.issue').map(el=>Object.fromEntries(['timestamp','problem','expected'].map(key=>[key,el.querySelector(`[data-field="${key}"]`).value]))),duration:Number.isFinite(video.duration)&&video.duration>0?video.duration:old.duration};}
 function saveDraft(){if(!current())return;const a=readForm();a.status='draft';a.updated_at=now();a.revision=(active()?.revision||0)+1;state.annotations[a.record_id]=a;persist();draftStatus();renderQueue();$('#form-error').hidden=true;}

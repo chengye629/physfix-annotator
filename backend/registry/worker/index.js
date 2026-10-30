@@ -57,6 +57,7 @@ async function handle(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(path==='/health')return {data:{ready:!!env.DB,plan:PLAN,participants:CAPACITY,annotations:true,api_version:2}};
  if(!env.DB)throw new ApiError(503,'登记服务暂时不可用。','storage_unavailable');
+ if(path==='/api/demos'&&request.method==='GET')return {data:await publishedDemos(env)};
  if(path==='/api/claim'&&request.method==='POST')return {data:await claim(request,env)};
  if(['/api/annotations','/api/annotations/sync','/api/examples','/api/admin/annotations'].includes(path)){const owner=await authorize(request,env,path==='/api/admin/annotations');return {data:await annotationRoute(request,env,owner,url)};}
  if(path==='/api/lease'&&request.method==='GET'){
@@ -123,7 +124,7 @@ async function annotationRoute(request,env,owner,url){
  if(path==='/api/annotations/sync'&&request.method==='POST'){
   const data=await body(request,2097152);
   if(!Array.isArray(data.records)||!data.records.length||data.records.length>20)throw new ApiError(400,'每次同步应包含 1–20 条标注。');
-  const saved=[],conflicts=[];
+  const saved=[],conflicts=[],demoCandidates=[];
   for(const entry of data.records){
    const raw=entry.annotation,annotation=validateCloudAnnotation(raw),key=recordKey(owner.annotator_id,annotation.record_id);
    const payload=stableStringify(annotation),hash=await digest(payload),rawPayload=stableStringify(raw),eventId=await digest(key+rawPayload);
@@ -135,13 +136,15 @@ async function annotationRoute(request,env,owner,url){
     env.DB.prepare('SELECT * FROM annotations WHERE record_key=?1').bind(key)
    ]);
    const row=results[2].results[0];
-   if(row.content_hash===hash)saved.push({record_id:annotation.record_id,version:row.version});
+   if(row.content_hash===hash){saved.push({record_id:annotation.record_id,version:row.version});demoCandidates.push(JSON.parse(row.payload));}
    else conflicts.push(cloudRow(row));
   }
+  await freezeDemoSnapshot(env,owner,demoCandidates);
   return {saved,conflicts};
  }
  if(path==='/api/annotations'&&request.method==='GET'){
   const rows=await env.DB.prepare('SELECT * FROM annotations WHERE annotator_id=?1 ORDER BY record_id').bind(owner.annotator_id).all();
+  await freezeDemoSnapshot(env,owner,rows.results.map(row=>JSON.parse(row.payload)));
   return {records:rows.results.map(cloudRow)};
  }
  if((path==='/api/examples'||path==='/api/admin/annotations')&&request.method==='GET'){
@@ -160,4 +163,25 @@ async function annotationRoute(request,env,owner,url){
   return {records:rows.slice(0,limit).map(cloudRow),next_cursor:rows.length>limit?cursor+limit:null};
  }
  throw new ApiError(404,'接口不存在。');
+}
+
+const DEMO_SOURCES=new Set(['马思远','林炬乙']);
+async function freezeDemoSnapshot(env,owner,annotations){
+ if(!DEMO_SOURCES.has(owner.display_name))return;
+ const key=nameKey(owner.display_name);
+ if(await env.DB.prepare('SELECT source_key FROM demo_snapshots WHERE source_key=?1').bind(key).first())return;
+ const submitted=annotations.filter(a=>a.status==='submitted'&&Object.hasOwn(BASELINES,a.record_id));
+ if(!submitted.length)return;
+ const frozenAt=new Date().toISOString(),cases=[];
+ for(const decision of ['pass_modified','pass','reject_no_clear_issue','reject_poor_quality']){
+  for(const a of submitted.filter(a=>outcome(a)===decision).slice(0,2)){
+   const annotation=Object.fromEntries(['record_id','status','verdict','approval_type','issues','duration','submitted_watch','updated_at'].filter(field=>a[field]!==undefined).map(field=>[field,a[field]]));
+   cases.push({case_id:(await digest(key+':'+a.record_id)).slice(0,16),annotation,original:BASELINES[a.record_id],frozen_at:frozenAt});
+  }
+ }
+ await env.DB.prepare('INSERT OR IGNORE INTO demo_snapshots(source_key,payload,frozen_at) VALUES(?1,?2,?3)').bind(key,JSON.stringify(cases),frozenAt).run();
+}
+async function publishedDemos(env){
+ const rows=(await env.DB.prepare('SELECT payload,frozen_at FROM demo_snapshots ORDER BY frozen_at,source_key').all()).results;
+ return {frozen:true,snapshot_count:rows.length,cases:rows.flatMap(row=>JSON.parse(row.payload))};
 }

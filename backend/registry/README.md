@@ -21,3 +21,5 @@
 前端首次进入补传旧内容；backend 只添加 approval_type、approval_source 分类元数据，保留上传原文，不更改卡片、状态、修订号、时间或播放记录。
 
 现有后台域名同时提供备用前端。scripts/bundle-frontend.mjs 从前端源码生成 worker/static-assets.js，仅包含公开页面、模块与数据索引，不打包视频、个人标注或凭据；视频仍指向原 GitHub Pages 镜像。前端代码变更后应重新生成并构建。不同域名的本机存储互相隔离，迁移旧标注必须先导出 JSON 再导入，云端数据和分工共用。
+
+标注守则通过公开只读 GET /api/demos 读取匿名固定快照。demo_snapshots 每个指定来源只 INSERT OR IGNORE 一次：首次同步包含已提交内容时固定该批代表案例；已有云端标注也可在本人重新进入时补建。之后的正常修改、重新提交和新增标注均不替换快照。对外只显示“管理员”，响应不含姓名、账号或会话。原 annotations、annotation_history、任务和进度不受冻结影响。0002 只新增快照表，旧迁移不变。

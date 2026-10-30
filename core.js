@@ -25,7 +25,7 @@ export function validateAnnotation(a){
   if(!a||!Object.hasOwn(VERDICTS,a.verdict))return ['请选择一个提交结果。'];if(a.verdict!=='pass')return [];
   const errors=[];if(!Array.isArray(a.issues)||!a.issues.length||a.issues.length>50)errors.push('请保留至少一张问题卡片。');
   if(!Number.isFinite(a.duration)||a.duration<=0)errors.push('请先成功加载视频。');
-  for(const [i,v] of (Array.isArray(a.issues)?a.issues:[]).entries()){const t=parseTimestamp(v.timestamp);if(!t)errors.push(`问题 ${i+1}：时间戳无效，例如 1.0–3.5 或 2.0。`);else if(Number.isFinite(a.duration)&&(t.start>=a.duration||t.end>a.duration+0.15))errors.push(`问题 ${i+1}：时间戳超出视频时长。`);if(!text(v.problem).trim())errors.push(`问题 ${i+1}：请填写物理问题描述。`);if(!text(v.expected).trim())errors.push(`问题 ${i+1}：请填写修改后状态的描述。`);}return errors;
+  for(const [i,v] of (Array.isArray(a.issues)?a.issues:[]).entries()){const t=parseTimestamp(v.timestamp);if(!t)errors.push(`问题 ${i+1}：时间戳无效，例如 1.0–3.5 或 2.0。`);else if(Number.isFinite(a.duration)&&(t.start>=a.duration||t.end>a.duration+0.15))errors.push(`问题 ${i+1}：时间戳超出视频时长。`);if(!text(v.problem).trim())errors.push(`问题 ${i+1}：请填写物理问题描述。`);if(!text(v.expected).trim())errors.push(`问题 ${i+1}：请填写修改后应有的正确状态。`);}return errors;
 }
 export const isEffective=a=>a?.status==='submitted'&&a.verdict==='pass'&&!validateAnnotation(a).length;
 // Preserve edited cards. Old uncertain/unplayable votes require a fresh decision.

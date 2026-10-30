@@ -35,3 +35,9 @@ export const annotationHistory=sqliteTable('annotation_history',{
  payload:text('payload').notNull(),
  createdAt:text('created_at').notNull()
 });
+
+export const demoSnapshots=sqliteTable('demo_snapshots',{
+ sourceKey:text('source_key').primaryKey(),
+ payload:text('payload').notNull(),
+ frozenAt:text('frozen_at').notNull()
+});

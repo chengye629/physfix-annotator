@@ -4,10 +4,10 @@ import {VideoDelivery} from './video-delivery.js?v=12-cloud';
 import {SegmentPlayer} from './segment-player.js?v=12-cloud';
 import {playbackAssessment} from './playback.js?v=12-cloud';
 const $=selector=>document.querySelector(selector);
-const cardHTML=card=>'<article class="sample-card" tabindex="0" data-time="'+h(card.timestamp)+'"><strong>'+h(card.timestamp)+' 秒</strong><p><b>物理问题</b><br>'+h(card.problem)+'</p><p><b>修改后状态</b><br>'+h(card.expected)+'</p></article>';
+const cardHTML=card=>'<article class="sample-card" tabindex="0" data-time="'+h(card.timestamp)+'"><strong>'+h(card.timestamp)+' 秒</strong><p><b>物理问题</b><br>'+h(card.problem)+'</p><p><b>修改后应有的正确状态</b><br>'+h(card.expected)+'</p></article>';
 const submittedLabel=a=>OUTCOMES[outcome(a)]||'草稿';
 export function mountCloudUI({registry,cloud,getState,save,refresh,beforeResolve,getTasks,download}){
- let records=[],cursor=0,nextCursor=null,guideWindow=null;
+ let records=[],cursor=0,nextCursor=null;
  const video=$('#example-video'),delivery=new VideoDelivery(video,{getNextId:()=>null,onStatus:()=>{}}),segment=new SegmentPlayer(video,{onError:message=>{$('#example-detail-status').textContent=message;}});
  function status(value){
   const button=$('#sync-button');button.dataset.state=value.conflicts?'conflict':value.error?'error':value.pending?'pending':'saved';
@@ -59,19 +59,6 @@ export function mountCloudUI({registry,cloud,getState,save,refresh,beforeResolve
  }
  $('#download-cloud').onclick=async()=>{const exports=await readAll();if(exports)download({export_type:'team_backups',exported_at:new Date().toISOString(),exports},'physfix_team');};
  $('#read-cloud-merge').onclick=async()=>{const exports=await readAll();if(exports)document.dispatchEvent(new CustomEvent('physfix-cloud-review',{detail:exports}));};
- async function guideCases(){
-  const result=[];
-  for(const name of ['马思远','林炬乙']){
-   let pageCursor=0;const all=[];
-   do{const page=await registry.examples({name,cursor:pageCursor});all.push(...page.records);pageCursor=page.next_cursor;}while(pageCursor!==null);
-   for(const decision of ['pass_modified','pass','reject_no_clear_issue','reject_poor_quality'])result.push(...all.filter(r=>outcome(r.annotation)===decision).slice(0,2).map(r=>({...r,original:seedIssues(getTasks().find(t=>t.record_id===r.annotation.record_id))})));
-  }
-  return result;
- }
- $('#guide-button').onclick=()=>{guideWindow=window.open('./guide.html','physfix-guide');};
- window.addEventListener('message',async event=>{
-  if(event.origin!==location.origin||event.source!==guideWindow||event.data?.type!=='physfix-guide-ready')return;
-  try{const cases=await guideCases();if(guideWindow&&!guideWindow.closed)guideWindow.postMessage({type:'physfix-guide-cases',cases},location.origin);}catch(error){guideWindow?.postMessage({type:'physfix-guide-error',error:error.message},location.origin);}
- });
+ $('#guide-button').onclick=()=>window.open('./guide.html?v=13-demo','physfix-guide');
  return {status,setManifest:value=>delivery.setManifest(value),stop:()=>{segment.stop();delivery.dispose();}};
 }
