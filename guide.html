@@ -4,10 +4,62 @@
 *{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#f3f6fb;color:#24334b;line-height:1.85;margin:0;padding:28px}main{max-width:960px;margin:auto;background:white;padding:36px 44px;border:1px solid #e2e8f1;border-radius:14px}h1{font-size:26px;margin:0 0 22px}h2{font-size:19px;margin:30px 0 12px;color:#344f9b}h3{font-size:16px}p{margin:10px 0}li{margin:7px 0}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border:1px solid #dfe6f1;padding:11px;text-align:left;vertical-align:top}th{background:#f2f5fc}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px}button,a.button{font:inherit;font-size:14px;border:1px solid #d6dff0;border-radius:7px;padding:7px 12px;background:#f7f9ff;color:#3f59bb;cursor:pointer;text-decoration:none}.case{border-top:1px solid #e2e8f1;margin-top:24px;padding-top:16px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{background:#f8faff;border:1px solid #e1e8f3;padding:14px;border-radius:8px;margin:10px 0}.card p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}.notice{background:#fff7e8;border:1px solid #f0dfbd;border-radius:8px;padding:10px 14px}small{font-size:13px}code{overflow-wrap:anywhere}
 @media(max-width:600px){body{padding:12px}main{padding:22px 18px}.comparison{grid-template-columns:1fr}table{font-size:13px}th,td{padding:8px}}
 @media print{body{background:white;padding:0}main{border:0;padding:0;max-width:none}.actions{display:none}h2,h3{break-after:avoid}.card{break-inside:avoid}.case{break-inside:auto}}
+
+.workflow{margin:18px 0 28px;padding:24px 20px;border:1px solid #dfe6f1;border-radius:12px;background:#fbfcff;line-height:1.65}
+.flow-node{padding:14px 16px;border:1px solid #d6e0f0;border-radius:9px;background:#fff;text-align:center}
+.flow-node strong,.flow-node span{display:block}.flow-node strong{font-size:15px}.flow-node span{font-size:14px;margin-top:5px}
+.flow-start{max-width:250px;margin:0 auto;background:#f1f5ff;border-color:#cbd8f3}
+.flow-arrow{font-size:23px;line-height:1.25;text-align:center;color:#8095b8;margin:7px 0}
+.flow-decision{max-width:580px;margin:0 auto;background:#edf3ff;border:2px solid #9bb3e7}
+.flow-decision strong{color:#344f9b}
+.flow-stem{width:1px;height:23px;background:#a9b8d0;margin:0 auto}
+.flow-branches{display:grid;grid-template-columns:1fr 1fr;gap:24px;position:relative;padding-top:23px}
+.flow-branches::before{content:"";position:absolute;top:0;left:calc(25% - 6px);right:calc(25% - 6px);border-top:1px solid #a9b8d0}
+.flow-branch{position:relative;min-width:0}
+.flow-branch::before{content:"";position:absolute;top:-23px;left:50%;height:23px;border-left:1px solid #a9b8d0}
+.flow-label{display:table;margin:0 auto 11px;padding:3px 12px;border-radius:6px;font-size:14px;font-weight:600}
+.flow-reject .flow-label{background:#fbecef;color:#a34f62}.flow-accept .flow-label{background:#e8f5ee;color:#237153}
+.flow-reject>.flow-node{border-color:#ecd7dd;background:#fff9fa;text-align:left}
+.flow-reject .flow-node>strong{text-align:center;color:#a34f62}
+.flow-reject ul{padding-left:20px;margin:11px 0 0;font-size:14px}
+.flow-reject li+li{margin-top:14px}
+.flow-reject li b{display:block;color:#8e4e60}
+.flow-accept>.flow-node{border-color:#cdddeb;background:#f7fbff}
+.flow-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.flow-choices .flow-node{padding:12px 9px;border-color:#c6e0d3;background:#f0f9f4}
+.flow-choices .flow-node span{margin:0 0 5px;font-size:13px}
+.flow-choices .flow-node strong{color:#237153}
+@media(max-width:600px){.workflow{padding:20px 14px}.flow-branches{grid-template-columns:1fr;gap:20px;padding-top:16px}.flow-branches::before,.flow-branch::before,.flow-stem{display:none}.flow-label{margin-bottom:9px}.flow-decision{padding:13px 12px}}
+@media print{.workflow{break-inside:avoid;background:#fff}.workflow *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body><main>
 <h1>标注守则</h1>
 <div class="actions"><button id="download-guide">下载文档</button><button id="print-guide">打印 / 存为 PDF</button><a class="button" href="./">返回标注</a></div>
 <p>任务是筛选适合用于“修复物理问题”的视频，并把预标注修正为准确、可执行的修改要求。预标注只是起点，每张卡片都需要对照视频确认。</p>
+<h2 id="flow-heading">标注流程</h2>
+<figure class="workflow" aria-labelledby="flow-heading" aria-label="先完整观看视频，判断视频是否符合修复要求；不符合则拒绝，符合才核对预标注，必要时修改，再按是否修改选择通过方式。">
+  <div class="flow-node flow-start"><strong>完整观看视频</strong></div>
+  <div class="flow-arrow" aria-hidden="true">↓</div>
+  <div class="flow-node flow-decision"><strong>先判断：视频是否符合修复要求？</strong><span>物理问题明显、客观、无争议，整体质量适合修复</span></div>
+  <div class="flow-stem" aria-hidden="true"></div>
+  <div class="flow-branches">
+    <section class="flow-branch flow-reject" aria-label="不符合要求的处理">
+      <div class="flow-label">不符合，或模棱两可</div>
+      <div class="flow-node"><strong>拒绝</strong><ul>
+        <li>没有明确、无争议的物理问题，或不能确定问题是否成立<b>拒绝：无明确问题</b></li>
+        <li>整体质量差、物理问题过多，或原视频异常加速、减速<b>拒绝：整体质量太差</b></li>
+      </ul></div>
+    </section>
+    <section class="flow-branch flow-accept" aria-label="符合要求后的标注流程">
+      <div class="flow-label">符合</div>
+      <div class="flow-node"><strong>再核对预标注，必要时修改</strong><span>核对时间戳、物理问题、修改后应有的正确状态；修正幻觉和错误，必要时增删卡片</span></div>
+      <div class="flow-arrow" aria-hidden="true">↓</div>
+      <div class="flow-choices">
+        <div class="flow-node"><span>无需修改</span><strong>直接通过</strong></div>
+        <div class="flow-node"><span>有修改或增删</span><strong>修改后通过</strong></div>
+      </div>
+    </section>
+  </div>
+</figure>
 <h2>先看完整视频，再作决定</h2>
 <ol><li>先以正常速度完整播放一次，了解场景、动作和问题发生过程。需要时重复播放、逐帧查看；点击卡片可播放对应片段。</li><li>确认这个视频是否适合做物理修复：问题应当明显、客观、无争议，且能说清楚要改成什么样。模棱两可的全部拒绝；不要收录仅靠猜测才能成立的问题。</li><li>视频适合时，逐条核对时间戳、问题描述和修复目标。删除预标注中的幻觉、错误定位或无依据的判断，补充漏掉的明确问题后，再选择对应通过按钮。</li></ol>
 <p class="notice"><b>模棱两可的全部拒绝。</b>只保留明显、客观、无争议且适合修复的物理问题。</p>
