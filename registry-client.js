@@ -1,4 +1,4 @@
-import {PARTICIPANT_COUNT} from './participants.js?v=11-roster';
+import {PARTICIPANT_COUNT} from './participants.js?v=11-namefix';
 export class RegistryError extends Error{constructor(message,status=0,code=''){super(message);Object.assign(this,{status,code});}}
 export class RegistryClient{
  constructor(base,{fetcher=(...args)=>fetch(...args)}={}){this.base=base?.replace(/\/$/,'');this.fetcher=fetcher;this.session=null;}

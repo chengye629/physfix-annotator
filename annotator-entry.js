@@ -1,4 +1,4 @@
-import {participantFor} from './participants.js?v=11-roster';
+import {participantFor} from './participants.js?v=11-namefix';
 export const ACTIVE_WORKSPACE_KEY='physfix.workspace.v1';
 const PROFILE_PREFIX='physfix.person.v1.';
 export function normalizeName(value){

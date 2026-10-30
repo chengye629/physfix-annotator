@@ -1,4 +1,4 @@
-import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=11-roster';
+import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=11-namefix';
 export {PARTICIPANT_COUNT,ASSIGNMENT_PLAN};
 export function validPerson(value){const number=Number(value);return /^\d+$/.test(String(value))&&Number.isInteger(number)&&number>=1&&number<=PARTICIPANT_COUNT?number:null;}
 export function assignedTasks(tasks,person=null){return person===null?tasks:tasks.filter((task,index)=>index%PARTICIPANT_COUNT===person-1);}
