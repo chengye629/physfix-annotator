@@ -70,3 +70,26 @@ dialog{width:min(1000px,calc(100vw - 36px));max-height:88dvh;overflow:auto;paddi
 #entry-task{display:inline-block;padding:3px 10px;margin:-10px 0 22px;background:var(--accent-soft);color:#4563b9;font-size:13px;border-radius:6px}
 #entry-assignment-row{margin-top:18px}
 #entry-assignment{width:100%;min-height:43px}
+/* Cloud status and read-only examples. */
+header{height:auto;min-height:72px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+.header-actions{flex-wrap:wrap;align-items:center}
+#sync-button{border-color:transparent;background:transparent;color:#18795d}
+#sync-button[data-state=pending],#sync-button[data-state=conflict]{color:#966623}
+#sync-button[data-state=error]{color:#a8364e}
+.submission-actions .modified-pass{background:#eef5ff;border-color:#c9dafa;color:#325eac;text-align:center;font-weight:600}
+.submission-actions .modified-pass:hover{background:#e1edff;border-color:#9bb7e9}
+.example-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.example-layout{display:grid;grid-template-columns:minmax(230px,.8fr) minmax(0,1.2fr);gap:22px}
+.example-row{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;margin-bottom:7px;text-align:left;background:#f7f9ff}
+.example-row span:last-child{font-size:12px;color:#4563b9}
+.sample-card{border:1px solid var(--line);border-radius:9px;padding:13px;margin:12px 0;background:#fbfcff;cursor:pointer}
+.sample-card p{white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0 0}
+.sample-card strong{color:#4563b9}
+#example-detail-title{overflow-wrap:anywhere}
+#example-detail-status,#examples-status{font-size:13px}
+#example-video{aspect-ratio:16/9;max-height:40vh;border-radius:8px}
+.conflict-columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.conflict-entry{border-top:1px solid var(--line);padding:14px 0}
+.conflict-entry h3{overflow-wrap:anywhere}
+@media(min-width:801px){aside{top:var(--header-height,72px);height:calc(100dvh - var(--header-height,72px))}.video-panel{top:calc(var(--header-height,72px) + 24px)}}
+@media(max-width:600px){.header-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.header-actions button{min-width:0;font-size:12px}.example-layout,.conflict-columns{grid-template-columns:1fr}#example-list{max-height:230px;overflow:auto}}

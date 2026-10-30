@@ -8,6 +8,13 @@
       "when": 1793200974754,
       "tag": "0000_nebulous_cable",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793381812257,
+      "tag": "0001_abandoned_kabuki",
+      "breakpoints": true
     }
   ]
 }

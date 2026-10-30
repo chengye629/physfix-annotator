@@ -62,3 +62,8 @@ test('archived alias profiles are recovered and merged without replacing newer e
  const next=openNamedWorkspace(person('叶程'),'Hanqing Gao',storage);
  assert.equal(next.annotator.name,'高晗晴');assert.equal(next.annotations['video-a'].problem,'新修改');assert.equal(next.annotations['video-b'].problem,'另一条');
 });
+
+test('correcting Chen Guangyu recovers progress saved under the former misspelling',()=>{
+ const current=person('陈广宁','chen-id',{'video-a':{revision:3,problem:'原人工内容'}}),storage=memoryStorage();
+ const next=openNamedWorkspace(current,'Chen Guangyu',storage);assert.equal(next.annotator.name,'陈广宇');assert.equal(next.annotator.id,'chen-id');assert.deepEqual(next.annotations,current.annotations);assert.ok(storage.getItem(profileKey('陈广宁')));
+});

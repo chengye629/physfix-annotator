@@ -1,4 +1,4 @@
-import {PARTICIPANT_COUNT} from './participants.js?v=11-namefix';
+import {PARTICIPANT_COUNT} from './participants.js?v=12-cloud';
 export class RegistryError extends Error{constructor(message,status=0,code=''){super(message);Object.assign(this,{status,code});}}
 export class RegistryClient{
  constructor(base,{fetcher=(...args)=>fetch(...args)}={}){this.base=base?.replace(/\/$/,'');this.fetcher=fetcher;this.session=null;}
@@ -18,6 +18,10 @@ export class RegistryClient{
   this.session=data;const {token,...registration}=data;return registration;
  }
  async check(){if(!this.session)throw new RegistryError('请重新填写姓名进入。',403);const data=await this.request('/api/lease?claim_id='+encodeURIComponent(this.session.claim_id));if(data.claim_id!==this.session.claim_id||data.person!==this.session.person||data.annotator.id!==this.session.annotator.id||data.plan!==this.session.plan)throw new RegistryError('任务已调整，请重新进入。',410);return data;}
+ async annotations(){return this.request('/api/annotations');}
+ async syncAnnotations(records){return this.request('/api/annotations/sync',{body:{records}});}
+ async examples({name='',decision='',cursor=0}={}){return this.request('/api/examples?'+new URLSearchParams({name,outcome:decision,cursor:String(cursor)}));}
+ async allAnnotations(){const records=[];let cursor=0;do{const page=await this.request('/api/admin/annotations?limit=100&cursor='+cursor);records.push(...page.records);cursor=page.next_cursor;}while(cursor!==null);return records;}
  async list(){return this.request('/api/admin/claims');}
  async release(claimId){return this.request('/api/admin/release',{body:{claim_id:claimId}});}
  async reassign(claimId,name){return this.request('/api/admin/reassign',{body:{claim_id:claimId,name}});}

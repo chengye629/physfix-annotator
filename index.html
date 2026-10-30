@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=11-namefix"><script type="module" src="./app.js?v=11-namefix"></script>
+  <link rel="stylesheet" href="./style.css?v=12-cloud"><script type="module" src="./app.js?v=12-cloud"></script>
 </head>
 <body>
   <section id="entry" aria-label="填写姓名">
@@ -19,13 +19,13 @@
   <div id="annotation-app" hidden>
   <header>
     <strong>视频标注</strong><div class="annotator-identity"><span>标注人</span><strong id="annotator-name"></strong><button type="button" id="change-person">切换</button></div><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
-    <div class="header-actions"><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="manage-button" hidden>管理</button><button id="merge-button" hidden>汇总</button></div>
+    <div class="header-actions"><button id="sync-button" type="button">读取云端…</button><button id="examples-button">管理员标注情况</button><button id="guide-button">标注守则</button><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="manage-button" hidden>管理</button><button id="merge-button" hidden>汇总</button></div>
   </header>
   <div class="layout">
     <aside>
       <select id="source-filter" aria-label="数据来源"><option value="all">全部来源</option></select>
       <select id="group-filter" aria-label="任务分组"><option value="all">全部任务</option></select>
-      <select id="status-filter" aria-label="任务状态"><option value="all">全部</option><option value="pending">未提交</option><option value="draft">草稿</option><option value="pass">已通过</option><option value="reject_no_clear_issue">拒绝：无明确问题</option><option value="reject_poor_quality">拒绝：质量差</option><option value="submitted">已提交</option></select>
+      <select id="status-filter" aria-label="任务状态"><option value="all">全部</option><option value="pending">未提交</option><option value="draft">草稿</option><option value="pass">全部通过</option><option value="pass_direct">直接通过</option><option value="pass_modified">修改后通过</option><option value="reject_no_clear_issue">拒绝：无明确问题</option><option value="reject_poor_quality">拒绝：质量差</option><option value="submitted">已提交</option></select>
       <input id="search" type="search" placeholder="搜索编号" aria-label="搜索编号"><div class="queue-actions"><button id="resume-button" disabled>继续标注</button><button id="copy-group-link" title="复制当前分组的任务链接">复制组链接</button></div><div id="queue" aria-label="视频列表">加载中…</div>
     </aside>
     <main>
@@ -43,7 +43,8 @@
             <div id="issues"></div><button type="button" id="add-issue">+ 添加问题</button>
             <p id="form-error" class="error" role="alert" hidden></p>
             <div class="submission-actions">
-              <button type="submit" name="verdict" value="pass" class="primary">通过</button>
+              <button type="submit" name="verdict" value="pass" class="primary">直接通过</button>
+              <button type="submit" name="verdict" value="pass_modified" class="modified-pass">修改后通过</button>
               <button type="submit" name="verdict" value="reject_no_clear_issue">拒绝：没有明确、无争议的物理问题</button>
               <button type="submit" name="verdict" value="reject_poor_quality">拒绝：整体质量太差，物理问题过多</button>
             </div>
@@ -53,12 +54,18 @@
     </main>
   </div>
   </div>
-  <dialog id="management-dialog"><div class="dialog-heading"><strong>人员与任务</strong><button id="close-management">关闭</button></div><p id="management-status" role="status"></p><div class="table-scroll"><table><thead><tr><th>姓名</th><th>任务</th><th>操作</th></tr></thead><tbody id="management-body"></tbody></table></div><div class="merge-tools"><button id="view-all-tasks">查看全部任务</button></div></dialog>
+  <dialog id="management-dialog"><div class="dialog-heading"><strong>人员与任务</strong><button id="close-management">关闭</button></div><p id="management-status" role="status"></p><div class="table-scroll"><table><thead><tr><th>姓名</th><th>任务</th><th>操作</th></tr></thead><tbody id="management-body"></tbody></table></div><div class="merge-tools"><button id="view-all-tasks">查看全部任务</button><button id="download-cloud">下载全员标注</button><span id="cloud-read-status" role="status"></span></div></dialog>
   <dialog id="merge-dialog">
     <div class="dialog-heading"><strong>结果汇总</strong><button id="close-merge">关闭</button></div>
-    <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><label>最少人数 <select id="minimum-reviews"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><label>查看 <select id="merge-filter"><option value="received">已导入记录</option><option value="needs_more">待补标</option><option value="conflict">有分歧</option><option value="eligible">一致通过</option><option value="excluded">一致拒绝</option><option value="all">全部视频</option></select></label></div>
-    <p id="merge-status">未导入</p><details id="annotator-progress" hidden><summary>标注人进度</summary><div class="table-scroll"><table><thead><tr><th>标注人</th><th>已提交</th><th>通过</th><th>无明确问题</th><th>质量差</th></tr></thead><tbody id="annotator-body"></tbody></table></div></details><div class="table-scroll"><table><thead><tr><th>视频</th><th>判定</th><th>状态</th><th>卡片</th></tr></thead><tbody id="merge-body"></tbody></table></div>
+    <div class="merge-tools"><button id="merge-import">导入多人 JSON</button><button id="read-cloud-merge">从后台读取</button><label>最少人数 <select id="minimum-reviews"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label><label>查看 <select id="merge-filter"><option value="received">已导入记录</option><option value="needs_more">待补标</option><option value="conflict">有分歧</option><option value="eligible">一致通过</option><option value="excluded">一致拒绝</option><option value="all">全部视频</option></select></label></div>
+    <p id="merge-status">未导入</p><details id="annotator-progress" hidden><summary>标注人进度</summary><div class="table-scroll"><table><thead><tr><th>标注人</th><th>已提交</th><th>直接通过</th><th>修改后通过</th><th>无明确问题</th><th>质量差</th></tr></thead><tbody id="annotator-body"></tbody></table></div></details><div class="table-scroll"><table><thead><tr><th>视频</th><th>判定</th><th>状态</th><th>卡片</th></tr></thead><tbody id="merge-body"></tbody></table></div>
     <div class="merge-tools"><button id="merge-export" disabled>导出全部汇总</button><button id="merge-export-valid" disabled>导出一致通过</button><button id="merge-export-review" disabled>导出待复核清单</button><button id="merge-export-screened" disabled>导出播放筛除记录</button></div>
+  </dialog>
+  <dialog id="conflict-dialog"><div class="dialog-heading"><strong>选择保留的版本</strong><button id="close-conflicts">关闭</button></div><p id="conflict-notice">本机和云端内容不同。确认前会把原始内容备份到后台历史；请核对后选择。</p><div id="conflict-list"></div></dialog>
+  <dialog id="examples-dialog"><div class="dialog-heading"><strong>管理员标注情况</strong><button id="close-examples">关闭</button></div>
+    <div class="example-filters"><select id="example-person" aria-label="管理员"><option value="">全部管理员</option><option>叶程</option><option>马思远</option><option>林炬乙</option></select><select id="example-outcome" aria-label="样例判定"><option value="">全部结果</option><option value="pass">直接通过</option><option value="pass_modified">修改后通过</option><option value="reject_no_clear_issue">无明确问题</option><option value="reject_poor_quality">质量差</option></select><button id="examples-refresh">刷新</button></div>
+    <p id="examples-status" role="status"></p><div class="example-layout"><div><div id="example-list"></div><div class="merge-tools"><button id="examples-prev">上一页</button><span id="examples-page"></span><button id="examples-next">下一页</button></div></div>
+    <section id="example-detail" hidden><strong id="example-detail-title"></strong><p id="example-detail-status"></p><video id="example-video" controls playsinline preload="metadata"></video><div id="example-cards"></div><details><summary>对照原始预标注</summary><div id="example-original"></div></details></section></div>
   </dialog>
   <div id="toast" role="status" hidden></div><input id="restore-file" type="file" accept=".json,application/json" hidden><input id="merge-file" type="file" accept=".json,application/json" multiple hidden>
   <noscript>请启用 JavaScript。</noscript>

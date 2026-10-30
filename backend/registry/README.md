@@ -1,9 +1,21 @@
-# 共享任务登记
+# 任务登记与标注后台
 
-主站为 https://chengye629.github.io/physfix-annotator/ 。此服务只登记姓名和任务，不保存标注卡片。
+前端：https://chengye629.github.io/physfix-annotator/
 
-当前名单固定 9 人，606 条任务分为 3 份 68 条、6 份 67 条，按名单顺序分配，与访问顺序无关。worker/participants.js 定义中文名、拼音别名、固定任务及角色；前端 participants.js 保持相同。大小写、空格、连字符及姓名顺序的常见英文写法匹配同一姓名。并发领取通过数据库批处理和唯一索引保证幂等。
+固定九人、606 条任务和原分配计划保持不变。管理员为叶程、马思远、林炬乙。陈广宇的正确拼音为 Chen Guangyu / Guangyu Chen；误写的陈广宁与旧拼音保留为兼容别名。改名、提权不重新分配任务、不更换已有身份或会话。
 
-叶程、马思远为管理员，管理名单包括未进入的人。管理员可查看名单、重置登记、显式转交；名单外姓名只有在管理员转交后才能进入。这里只做内部姓名识别，不是正式账号认证。
+数据库 DB 现有 registrations 保留。新增 annotations 存每位标注人的最新记录；annotation_history 按内容去重保存上传原文及冲突版本。客户端先读取云端；更新要求匹配 server version，重复上传幂等，冲突不覆盖。原始预标注以 worker/baselines.js 固定，用于历史通过分类。
 
-九人计划使用新的 plan，旧七人登记保留；相同姓名可沿用旧标注人 ID。数据库结构不变，已应用迁移保持不变。npm test 验证别名、并发、预设任务、管理及旧身份保留；npm run build 生成独立 Worker。数据库绑定 DB。
+接口：
+- POST /api/claim，GET /api/lease：原有统一姓名入口和登记。
+- GET /api/annotations：读取本人全部记录。
+- POST /api/annotations/sync：每次最多 20 条，body 上限 2 MiB；以 base_version 条件更新。
+- GET /api/examples：已登记成员读取管理员已提交样例和统计，支持姓名、结果与分页。
+- GET /api/admin/annotations：管理员分页读取全员标注。
+- GET /api/admin/claims，POST /api/admin/release、/api/admin/reassign：保留管理操作。
+
+所有标注读写均由当前登记会话限定标注人。成员无权读取全员记录；样例不返回会话令牌。仍采用内部姓名识别，不引入密码或正式账号体系。
+
+运行 npm test、npm run build；scripts/build.mjs 将名单、比较逻辑和 606 条原始卡片编入独立 Worker。db/schema.ts 为结构声明；0001 为追加迁移，仅新增标注和历史表。已应用的 0000 和原 journal 项不可修改。
+
+前端首次进入补传旧内容；backend 只添加 approval_type、approval_source 分类元数据，保留上传原文，不更改卡片、状态、修订号、时间或播放记录。

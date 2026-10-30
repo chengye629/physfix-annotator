@@ -1,6 +1,8 @@
-import {normalizeAssignment} from './assignments.js?v=11-namefix';
-import {normalizePlayback} from './playback.js?v=8-full';
-import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=8-full';
+import {classifyApproval,OUTCOMES,outcome} from './approval.js?v=12-cloud';
+export {OUTCOMES,outcome};
+import {normalizeAssignment} from './assignments.js?v=12-cloud';
+import {normalizePlayback} from './playback.js?v=12-cloud';
+import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=12-cloud';
 export {DATASET};
 export const SCHEMA_VERSION=2;
 export const HF_BASE='https://huggingface.co/datasets/HuggingFriends/PhysFixBench/resolve/'+HF_REVISION+'/videos/';
@@ -34,14 +36,15 @@ export function upgradeAnnotation(item,task,legacyVersion=false){
   if(verdict!==''&&!Object.hasOwn(VERDICTS,verdict))throw new Error('备份包含无效判定。');
   let issues=item.issues.map(v=>{const start=typeof v?.start==='number'?String(v.start):text(v?.start,30),end=typeof v?.end==='number'?String(v.end):text(v?.end,30);return {timestamp:typeof v?.timestamp==='string'?text(v.timestamp,80):start&&end?(start===end?start:`${start}–${end}`):start,problem:text(v?.problem),expected:text(v?.expected)};});
   if(legacy&&!previous&&issues.length&&issues.every(v=>!v.timestamp&&!v.problem&&!v.expected)&&task)issues=seedIssues(task);
-  return {record_id:item.record_id,status,verdict,issues,keep:text(item.keep,1500),duration:typeof item.duration==='number'&&Number.isFinite(item.duration)&&item.duration>0?item.duration:null,revision:Number.isSafeInteger(item.revision)&&item.revision>=0?item.revision:0,updated_at:typeof item.updated_at==='string'&&Number.isFinite(Date.parse(item.updated_at))?new Date(item.updated_at).toISOString():'1970-01-01T00:00:00.000Z',...(normalizePlayback(item.watch)?{watch:normalizePlayback(item.watch)}:{}),...(normalizePlayback(item.submitted_watch)?{submitted_watch:normalizePlayback(item.submitted_watch)}:{}),...(legacy?{legacy:{verdict:previous,status:item.status,notes:text(item.notes,2000),checks:item.checks||{}}}:item.legacy?{legacy:item.legacy}:{})};
+  const upgraded={record_id:item.record_id,status,verdict,issues,keep:text(item.keep,1500),duration:typeof item.duration==='number'&&Number.isFinite(item.duration)&&item.duration>0?item.duration:null,revision:Number.isSafeInteger(item.revision)&&item.revision>=0?item.revision:0,updated_at:typeof item.updated_at==='string'&&Number.isFinite(Date.parse(item.updated_at))?new Date(item.updated_at).toISOString():'1970-01-01T00:00:00.000Z',...(normalizePlayback(item.watch)?{watch:normalizePlayback(item.watch)}:{}),...(normalizePlayback(item.submitted_watch)?{submitted_watch:normalizePlayback(item.submitted_watch)}:{}),...(item.approval_type==='direct'||item.approval_type==='modified'?{approval_type:item.approval_type,approval_source:item.approval_source==='button'?'button':'comparison'}:{}),...(legacy?{legacy:{verdict:previous,status:item.status,notes:text(item.notes,2000),checks:item.checks||{}}}:item.legacy?{legacy:item.legacy}:{})};
+  return classifyApproval(upgraded,task?seedIssues(task):null);
 }
 export function makeExport(state){return {schema_version:SCHEMA_VERSION,dataset:DATASET,dataset_revision:DATASET_REVISION,export_type:'personal_backup',exported_at:new Date().toISOString(),...(state.assignment?{assignment:structuredClone(state.assignment)}:{}),annotator:{id:state.annotator.id,name:state.annotator.name},annotations:Object.values(state.annotations).map(a=>({...a,fixing_prompt_zh:a.verdict==='pass'?buildPrompt(a):null}))};}
-export function normalizeExport(raw,knownIds){
+export function normalizeExport(raw,knownIds,taskById=null){
   if(!raw||![1,SCHEMA_VERSION].includes(raw.schema_version)||![DATASET,...LEGACY_DATASETS].includes(raw.dataset)||raw.export_type!=='personal_backup')throw new Error('请选择个人备份 JSON。');
   if(!raw.annotator||!text(raw.annotator.id,120).trim()||!text(raw.annotator.name,32).trim())throw new Error('备份缺少标注人。');
   if(!Array.isArray(raw.annotations)||raw.annotations.length>knownIds.size)throw new Error('备份记录格式无效。');
-  const seen=new Set();const annotations=raw.annotations.map(item=>{if(!item||!knownIds.has(item.record_id)||seen.has(item.record_id))throw new Error('备份包含未知或重复样本。');seen.add(item.record_id);const a=upgradeAnnotation(item,null,raw.schema_version===1);if(a.status==='submitted'&&validateAnnotation(a).length)throw new Error(`${shortId(a.record_id)} 的已提交标注无效。`);return a;});
+  const seen=new Set();const annotations=raw.annotations.map(item=>{if(!item||!knownIds.has(item.record_id)||seen.has(item.record_id))throw new Error('备份包含未知或重复样本。');seen.add(item.record_id);const a=upgradeAnnotation(item,taskById?.get(item.record_id)??null,raw.schema_version===1);if(a.status==='submitted'&&validateAnnotation(a).length)throw new Error(`${shortId(a.record_id)} 的已提交标注无效。`);return a;});
   return {schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'personal_backup',...(raw.assignment?{assignment:normalizeAssignment(raw.assignment,knownIds)}:{}),annotator:{id:text(raw.annotator.id,120),name:text(raw.annotator.name,32)},annotations};
 }
 export function selectLatestAnnotations(exports){

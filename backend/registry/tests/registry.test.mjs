@@ -23,7 +23,7 @@ test('Chinese and English aliases, spaces, order and case resume one identity wi
 });
 test('both admins retain management in either language and can see all nine preset people before they enter',async()=>{
  const api=setup();try{
- const ye=(await api.request('/api/claim',{name:'Cheng Ye'})).data,ma=(await api.request('/api/claim',{name:'SIYUAN MA'})).data,member=(await api.request('/api/claim',{name:'林炬乙'})).data;
+ const ye=(await api.request('/api/claim',{name:'Cheng Ye'})).data,ma=(await api.request('/api/claim',{name:'SIYUAN MA'})).data,member=(await api.request('/api/claim',{name:'刘皓天'})).data;
  assert.equal(ye.role,'admin');assert.equal(ma.role,'admin');assert.equal(member.role,'member');assert.equal((await api.request('/api/admin/claims',null,member.token)).status,403);
  for(const admin of [ye,ma]){const r=await api.request('/api/admin/claims',null,admin.token);assert.equal(r.status,200);assert.equal(r.data.claims.length,9);assert.equal(r.data.claims.filter(c=>c.claim_id).length,3);assert.ok(r.data.claims.every(c=>!('session_token'in c)));}
  }finally{api.DB.close();}

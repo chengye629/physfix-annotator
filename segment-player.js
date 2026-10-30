@@ -1,4 +1,4 @@
-import {parseTimestamp,playbackRange} from './core.js?v=8-full';
+import {parseTimestamp,playbackRange} from './core.js?v=12-cloud';
 
 export class SegmentPlayer {
   constructor(video,{onActiveChange=()=>{},onError=()=>{}}={}) {

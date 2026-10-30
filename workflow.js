@@ -1,6 +1,6 @@
-import {mergeExports} from './core.js?v=8-full';
-import {screenPlaybackExports} from './screening.js?v=8-full';
-import {GROUP_SIZE,sourceOf} from './dataset-config.js?v=8-full';
+import {mergeExports,outcome} from './core.js?v=12-cloud';
+import {screenPlaybackExports} from './screening.js?v=12-cloud';
+import {GROUP_SIZE,sourceOf} from './dataset-config.js?v=12-cloud';
 
 export function annotationStage(annotation){
   if(annotation?.status==='submitted')return annotation.verdict;
@@ -11,7 +11,7 @@ export function matchesTaskStatus(annotation,filter){
   if(filter==='all')return true;
   if(filter==='pending')return annotation?.status!=='submitted';
   if(filter==='submitted')return annotation?.status==='submitted';
-  return stage===filter;
+  return filter==='pass_modified'?annotation?.status==='submitted'&&outcome(annotation)==='pass_modified':filter==='pass_direct'?annotation?.status==='submitted'&&outcome(annotation)==='pass':stage===filter;
 }
 export function groupTasks(tasks,group,source='all'){return tasks.filter((task,index)=>(group==='all'||Math.floor(index/GROUP_SIZE)===Number(group))&&(source==='all'||sourceOf(task)===source));}
 export function resolveStartTask(tasks,state,params){
@@ -45,10 +45,10 @@ export function buildReviewSummary(exports,taskIds,minimumReviews=2){
   const byId=new Map(received.map(row=>[row.record_id,row]));
   const samples=ids.map(record_id=>byId.get(record_id)||{record_id,reviewer_count:0,status:'unreviewed',eligible:false,votes:[]});
   const people=new Map();
-  for(const data of exports)if(!people.has(data.annotator.id))people.set(data.annotator.id,{id:data.annotator.id,name:data.annotator.name,submitted:0,pass:0,reject_no_clear_issue:0,reject_poor_quality:0,latest:0});
+  for(const data of exports)if(!people.has(data.annotator.id))people.set(data.annotator.id,{id:data.annotator.id,name:data.annotator.name,submitted:0,pass:0,pass_direct:0,pass_modified:0,reject_no_clear_issue:0,reject_poor_quality:0,latest:0});
   for(const sample of received)for(const vote of sample.votes){
     const person=people.get(vote.annotator.id);if(!person)continue;
-    person.submitted+=1;person[vote.annotation.verdict]+=1;
+    person.submitted+=1;person[vote.annotation.verdict]+=1;if(vote.annotation.verdict==='pass')person[outcome(vote.annotation)==='pass_modified'?'pass_modified':'pass_direct']+=1;
     const updated=Date.parse(vote.annotation.updated_at)||0;if(updated>=person.latest){person.name=vote.annotator.name;person.latest=updated;}
   }
   const coverage={total:ids.length,covered:received.length,met_minimum:samples.filter(r=>r.reviewer_count>=minimum).length,needs_more:samples.filter(r=>r.reviewer_count<minimum).length,conflicts:samples.filter(r=>r.status==='conflict').length,eligible:samples.filter(r=>r.eligible).length};
