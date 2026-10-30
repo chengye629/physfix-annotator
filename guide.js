@@ -10,10 +10,10 @@ async function load(){
   const response=await fetch(REGISTRY_API+'/api/demos',{cache:'no-store',signal:controller.signal});
   if(!response.ok)throw new Error('示例读取失败');
   const data=await response.json();if(!data.frozen||!Array.isArray(data.cases))throw new Error('示例格式无效');
-  status.textContent=data.cases.length?'以下为管理员首次同步时保存的固定案例，后续修改或新增标注不会替换这里的示例。':'管理员尚未同步已提交的示例。首次同步后会自动生成并固定。';
+  status.textContent=data.cases.length?'每位管理员取前 10 条已同步记录，陆续同步后补齐；已展示的案例固定，不被后续修改替换。':'管理员的记录同步后会自动加入，每位最多 10 条。';
   container.innerHTML=data.cases.map((row,index)=>{
-   const a=row.annotation,decision=outcome(a),watched=playbackAssessment(a.submitted_watch,a.duration).valid;
-   return '<section class="case"><h3>案例 '+(index+1)+' · 管理员 · '+h(OUTCOMES[decision])+'</h3><p><code>'+h(a.record_id)+'</code></p><p>'+h(reasons[decision]||'')+'</p>'+(!watched?'<p class="notice">该条播放记录不完整，观看情况需复核。</p>':'')+'<div class="comparison"><div><h4>原始预标注</h4>'+row.original.map(card).join('')+'</div><div><h4>管理员最终标注</h4>'+a.issues.map(card).join('')+'</div></div></section>';
+   const a=row.annotation,decision=a.status==='submitted'?outcome(a):'',watched=playbackAssessment(a.status==='submitted'?a.submitted_watch:a.watch,a.duration).valid;
+   return '<section class="case"><h3>案例 '+(index+1)+' · 管理员'+(decision?' · '+h(OUTCOMES[decision]):'')+'</h3><p><code>'+h(a.record_id)+'</code></p><p>'+h(reasons[decision]||'')+'</p>'+(!watched?'<p class="notice">该条播放记录不完整，观看情况需复核。</p>':'')+'<div class="comparison"><div><h4>原始预标注</h4>'+row.original.map(card).join('')+'</div><div><h4>管理员标注</h4>'+a.issues.map(card).join('')+'</div></div></section>';
   }).join('');
  }catch{status.textContent='示例暂时无法读取，请稍后重新打开本页。';}
  finally{clearTimeout(timer);}

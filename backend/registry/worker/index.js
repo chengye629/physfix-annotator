@@ -168,20 +168,22 @@ async function annotationRoute(request,env,owner,url){
 const DEMO_SOURCES=new Set(['马思远','林炬乙']);
 async function freezeDemoSnapshot(env,owner,annotations){
  if(!DEMO_SOURCES.has(owner.display_name))return;
- const key=nameKey(owner.display_name);
- if(await env.DB.prepare('SELECT source_key FROM demo_snapshots WHERE source_key=?1').bind(key).first())return;
- const submitted=annotations.filter(a=>a.status==='submitted'&&Object.hasOwn(BASELINES,a.record_id));
- if(!submitted.length)return;
- const frozenAt=new Date().toISOString(),cases=[];
- for(const decision of ['pass_modified','pass','reject_no_clear_issue','reject_poor_quality']){
-  for(const a of submitted.filter(a=>outcome(a)===decision).slice(0,2)){
-   const annotation=Object.fromEntries(['record_id','status','verdict','approval_type','issues','duration','submitted_watch','updated_at'].filter(field=>a[field]!==undefined).map(field=>[field,a[field]]));
-   cases.push({case_id:(await digest(key+':'+a.record_id)).slice(0,16),annotation,original:BASELINES[a.record_id],frozen_at:frozenAt});
-  }
+ const key=nameKey(owner.display_name),existing=await env.DB.prepare('SELECT payload FROM demo_snapshots WHERE source_key=?1').bind(key).first();
+ const prior=existing?JSON.parse(existing.payload):[],seen=new Set(prior.map(row=>row.annotation.record_id));
+ if(prior.length>=10)return;
+ const available=annotations.filter(a=>Object.hasOwn(BASELINES,a.record_id)&&!seen.has(a.record_id)).sort((a,b)=>(a.updated_at||'').localeCompare(b.updated_at||'')||a.record_id.localeCompare(b.record_id));
+ for(const a of available.slice(0,10-prior.length)){
+  const time=new Date().toISOString();
+  const annotation=Object.fromEntries(['record_id','status','verdict','approval_type','issues','duration','watch','submitted_watch','revision','updated_at'].filter(field=>a[field]!==undefined).map(field=>[field,a[field]]));
+  const row={case_id:(await digest(key+':'+a.record_id)).slice(0,16),annotation,original:BASELINES[a.record_id],frozen_at:time},item=JSON.stringify(row);
+  await env.DB.prepare("INSERT INTO demo_snapshots(source_key,payload,frozen_at) VALUES(?1,?2,?3) ON CONFLICT(source_key) DO UPDATE SET payload=json_insert(demo_snapshots.payload,'$[#]',json(?4)) WHERE json_array_length(demo_snapshots.payload)<10 AND NOT EXISTS(SELECT 1 FROM json_each(demo_snapshots.payload) WHERE json_extract(value,'$.annotation.record_id')=?5)").bind(key,'['+item+']',time,item,a.record_id).run();
  }
- await env.DB.prepare('INSERT OR IGNORE INTO demo_snapshots(source_key,payload,frozen_at) VALUES(?1,?2,?3)').bind(key,JSON.stringify(cases),frozenAt).run();
 }
 async function publishedDemos(env){
+ for(const name of DEMO_SOURCES){
+  const source=(await env.DB.prepare('SELECT payload FROM annotations WHERE annotator_name=?1 ORDER BY record_id').bind(name).all());
+  await freezeDemoSnapshot(env,{display_name:name},source.results.map(row=>JSON.parse(row.payload)));
+ }
  const rows=(await env.DB.prepare('SELECT payload,frozen_at FROM demo_snapshots ORDER BY frozen_at,source_key').all()).results;
- return {frozen:true,snapshot_count:rows.length,cases:rows.flatMap(row=>JSON.parse(row.payload))};
+ return {frozen:true,per_admin_limit:10,snapshot_count:rows.length,cases:rows.flatMap(row=>JSON.parse(row.payload))};
 }

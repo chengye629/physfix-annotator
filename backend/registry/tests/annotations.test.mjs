@@ -72,30 +72,19 @@ test('fallback frontend serves current UI and compressed dataset without changin
  }finally{api.DB.close();}
 });
 
-test('administrator demos freeze once per source and never expose account names or change normal progress',async()=>{
+
+test('first ten synced records include unsubmitted content, append gradually, and never replace earlier examples',async()=>{
  const api=setup();try{
- const ma=await claim(api,'马思远'),lin=await claim(api,'林炬乙'),ye=await claim(api,'叶程');
- await sync(api,ye,annotation());assert.equal((await api.request('/api/demos')).data.cases.length,0);
- await sync(api,ma,annotation({status:'draft',verdict:''}));assert.equal((await api.request('/api/demos')).data.cases.length,0);
- await sync(api,ma,annotation(),1);const first=(await api.request('/api/demos')).data;
- assert.equal(first.snapshot_count,1);assert.equal(first.cases.length,1);assert.equal(first.cases[0].annotation.approval_type,'direct');
- const changed=annotation({revision:8});changed.issues[0].problem='管理员后来改过的内容';await sync(api,ma,changed,2);
- assert.deepEqual((await api.request('/api/demos')).data,first);
- assert.equal((await api.request('/api/annotations',null,ma.token)).data.records[0].annotation.issues[0].problem,'管理员后来改过的内容');
- const another=Object.keys(BASELINES)[1];await sync(api,ma,annotation({record_id:another,issues:structuredClone(BASELINES[another])}));
- assert.deepEqual((await api.request('/api/demos')).data,first);
- await sync(api,lin,annotation());const both=(await api.request('/api/demos')).data;assert.equal(both.snapshot_count,2);assert.equal(both.cases.length,2);
- const json=JSON.stringify(both);for(const secret of ['马思远','林炬乙','annotator_id','session_token'])assert.ok(!json.includes(secret));
- const oldLin=structuredClone(both.cases[1]);await sync(api,lin,annotation({verdict:'reject_poor_quality',revision:10}),1);
- assert.deepEqual((await api.request('/api/demos')).data.cases[1],oldLin);
- }finally{api.DB.close();}
-});
-test('previously synced admin submissions can be frozen on re-entry without rewriting annotation versions',async()=>{
- const api=setup();try{
- const person=await claim(api,'马思远');await sync(api,person,annotation());
- await api.DB.prepare('DELETE FROM demo_snapshots').run();
- const before=(await api.request('/api/annotations',null,person.token)).data.records[0];
- const snapshot=(await api.request('/api/demos')).data;assert.equal(snapshot.cases.length,1);
- const after=(await api.request('/api/annotations',null,person.token)).data.records[0];assert.deepEqual(after,before);
+ const ma=await claim(api,'马思远'),lin=await claim(api,'林炬乙'),ids=Object.keys(BASELINES);
+ const first=annotation({status:'draft',verdict:''});await sync(api,ma,first);
+ const initial=(await api.request('/api/demos')).data;assert.equal(initial.cases.length,1);assert.equal(initial.cases[0].annotation.status,'draft');
+ const edited=annotation({revision:8});edited.issues[0].problem='后来的修改';await sync(api,ma,edited,1);
+ assert.deepEqual((await api.request('/api/demos')).data.cases[0],initial.cases[0]);
+ const records=ids.slice(1,14).map(id=>({base_version:null,annotation:annotation({record_id:id,issues:structuredClone(BASELINES[id]),status:'draft',verdict:''})}));
+ assert.equal((await api.request('/api/annotations/sync',{records},ma.token)).status,200);
+ assert.equal((await api.request('/api/demos')).data.cases.length,10);
+ await sync(api,lin,first);const data=(await api.request('/api/demos')).data;assert.equal(data.cases.length,11);assert.equal(data.per_admin_limit,10);
+ assert.ok(!JSON.stringify(data).includes('马思远'));assert.ok(!JSON.stringify(data).includes('林炬乙'));
+ assert.equal((await api.request('/api/annotations',null,ma.token)).data.records.find(r=>r.annotation.record_id===first.record_id).annotation.issues[0].problem,'后来的修改');
  }finally{api.DB.close();}
 });

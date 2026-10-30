@@ -1,6 +1,6 @@
 import {compareApproval} from './approval.js?v=12-cloud';
 import {CloudSync} from './cloud-sync.js?v=12-cloud';
-import {mountCloudUI} from './cloud-ui.js?v=13-demo';
+import {mountCloudUI} from './cloud-ui.js?v=15-demos';
 import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=12-cloud';
 import {VideoDelivery} from './video-delivery.js?v=12-cloud';
 import {loadDataset} from './dataset-loader.js?v=12-cloud';
