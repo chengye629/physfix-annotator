@@ -31,10 +31,21 @@
 .flow-choices .flow-node strong{color:#237153}
 @media(max-width:600px){.workflow{padding:20px 14px}.flow-branches{grid-template-columns:1fr;gap:20px;padding-top:16px}.flow-branches::before,.flow-branch::before,.flow-stem{display:none}.flow-label{margin-bottom:9px}.flow-decision{padding:13px 12px}}
 @media print{.workflow{break-inside:avoid;background:#fff}.workflow *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+.example-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:18px}
+.example{border:1px solid #dfe6f1;border-radius:10px;overflow:hidden;background:#fff}
+.example h3{display:flex;align-items:center;gap:9px;padding:15px 16px;margin:0;font-size:16px}
+.decision{font-size:13px;padding:3px 9px;border-radius:5px;background:#e8f5ee;color:#237153;white-space:nowrap}
+.decision.reject{background:#fbecef;color:#a34f62}
+.example video{display:block;width:100%;aspect-ratio:16/9;max-height:320px;background:#172132;object-fit:contain}
+.example p{padding:13px 16px;margin:0;font-size:14px}
+.video-error{padding:10px 16px;color:#a34f62;font-size:14px}
+@media(max-width:600px){.example-grid{grid-template-columns:1fr}.example h3{font-size:15px}}
+@media print{.example{break-inside:avoid}.example video{max-height:180px}}
 </style></head><body><main>
 <h1>标注守则</h1>
 <div class="actions"><button id="download-guide">下载文档</button><button id="print-guide">打印 / 存为 PDF</button><a class="button" href="./">返回标注</a></div>
-<p>任务是筛选适合用于“修复物理问题”的视频，并把预标注修正为准确、可执行的修改要求。预标注只是起点，每张卡片都需要对照视频确认。</p>
+<p>先筛选视频，再核对标注。只保留明显、客观、无争议且适合修复的物理问题。<b>模棱两可的全部拒绝。</b></p>
 <h2 id="flow-heading">标注流程</h2>
 <figure class="workflow" aria-labelledby="flow-heading" aria-label="先完整观看视频，判断视频是否符合修复要求；不符合则拒绝，符合才核对预标注，必要时修改，再按是否修改选择通过方式。">
   <div class="flow-node flow-start"><strong>完整观看视频</strong></div>
@@ -60,24 +71,14 @@
     </section>
   </div>
 </figure>
-<h2>先看完整视频，再作决定</h2>
-<ol><li>先以正常速度完整播放一次，了解场景、动作和问题发生过程。需要时重复播放、逐帧查看；点击卡片可播放对应片段。</li><li>确认这个视频是否适合做物理修复：问题应当明显、客观、无争议，且能说清楚要改成什么样。模棱两可的全部拒绝；不要收录仅靠猜测才能成立的问题。</li><li>视频适合时，逐条核对时间戳、问题描述和修复目标。删除预标注中的幻觉、错误定位或无依据的判断，补充漏掉的明确问题后，再选择对应通过按钮。</li></ol>
-<p class="notice"><b>模棱两可的全部拒绝。</b>只保留明显、客观、无争议且适合修复的物理问题。</p>
-<h2>四个提交按钮</h2>
-<table><thead><tr><th>选择</th><th>什么时候使用</th></tr></thead><tbody>
-<tr><td>直接通过</td><td>视频适合修复，原有问题卡片已经准确，不需要修改。</td></tr>
-<tr><td>修改后通过</td><td>视频适合修复，但原有卡片需要改正。改时间戳、重写描述、增删卡片都属于修改；完成后用此按钮。</td></tr>
-<tr><td>拒绝：没有明确、无争议的物理问题</td><td>没有确定的物理错误，或异常只是一种可能解释，存在遮挡、视角等其他合理解释，不能客观确认。</td></tr>
-<tr><td>拒绝：整体质量太差，物理问题过多</td><td>整体质量不足、问题遍布且难以明确修复，或原视频本身存在异常加速、减速。这里指原视频的时间变化，不是播放器中主动选择的播放速度。</td></tr>
-</tbody></table>
-<h2>每张问题卡片怎么写</h2>
-<ul><li><b>时间戳：</b>定位真正发生问题的时段，如“1.2–2.8”；瞬时事件可写单点，如“2.0”。不要把与问题无关的整段视频都圈进去。</li><li><b>当前视频的物理问题描述：</b>指出具体物体、可见现象及违反的物理关系。描述实际看到的内容，避免只写“看起来奇怪”“不符合物理”，也不要凭空补充接触、受力或材料属性。</li><li><b>修改后应有的正确状态：</b>写清同一时段应该发生的可见变化，使修复目标与该问题一一对应；尽量保留其余正常内容。</li></ul>
-<p>同一物理问题不要重复拆成多张卡片；不同问题应分别写清楚。通过前，再检查三字段是否一致、时间戳是否准确、修复目标是否能解决所描述的问题。</p>
-<h2>筛选尺度与记录保存</h2>
-<p>计划最终保留约 200–300 条，参考通过率低于 50%。这是整体筛选预期，不是要求每个人凑比例；每个视频仍按明确性、可修复性和整体质量独立判断。</p>
-<p>只加载视频、没有播放，或没有完整看完的提交，会在汇总时被筛除。历史缺少播放记录的内容会保留，并标记需要复核。</p>
-<p>卡片修改即时保存在本机，联网后自动同步到后台；提交后也会同步。顶部显示“已同步”表示当前进度已上传。网络失败时保留本机内容并可重试；多个设备出现不同内容时先核对版本再选择。仍可导出个人 JSON 作为独立备份。</p>
-<h2>管理员标注案例</h2>
-<p id="case-status" class="notice">正在读取管理员固定示例…</p>
-<div id="guide-cases"></div>
-</main><script type="module" src="./guide.js?v=15-demos"></script></body></html>
+<h2>卡片填写</h2>
+<ul>
+<li><b>时间戳：</b>准确定位问题发生的时段。</li>
+<li><b>当前视频的物理问题描述：</b>写清哪个物体出现了什么可见异常，避免猜测。</li>
+<li><b>修改后应有的正确状态：</b>写清应当如何变化，与问题一一对应。</li>
+</ul>
+<p>核对每张卡片，删除幻觉和重复问题，修正错误描述，补充明确遗漏。</p>
+<h2>通过与拒绝示例</h2>
+<div id="guide-examples" class="example-grid"></div>
+<p id="examples-error" role="alert" hidden></p>
+</main><script type="module" src="./guide.js?v=16-guide"></script></body></html>

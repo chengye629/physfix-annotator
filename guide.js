@@ -1,26 +1,27 @@
-import {escapeHTML as h,OUTCOMES,outcome} from './core.js?v=12-cloud';
-import {playbackAssessment} from './playback.js?v=12-cloud';
-import {REGISTRY_API} from './registry-config.js?v=12-cloud';
-const status=document.querySelector('#case-status'),container=document.querySelector('#guide-cases');
-const card=issue=>'<div class="card"><b>'+h(issue.timestamp)+' 秒</b><p><b>物理问题：</b>'+h(issue.problem)+'</p><p><b>修改后应有的正确状态：</b>'+h(issue.expected)+'</p></div>';
-const reasons={pass:'原预标注无需修改，管理员直接通过。',pass_modified:'视频被保留，预标注经过修订；请对照两侧卡片查看具体变化。',reject_no_clear_issue:'管理员判定没有明确、无争议的物理问题。模棱两可的全部拒绝。',reject_poor_quality:'管理员按整体质量太差或物理问题过多拒绝。原视频异常加速、减速也应归入此类。'};
-async function load(){
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
- try{
-  const response=await fetch(REGISTRY_API+'/api/demos',{cache:'no-store',signal:controller.signal});
-  if(!response.ok)throw new Error('示例读取失败');
-  const data=await response.json();if(!data.frozen||!Array.isArray(data.cases))throw new Error('示例格式无效');
-  status.textContent=data.cases.length?'每位管理员取前 10 条已同步记录，陆续同步后补齐；已展示的案例固定，不被后续修改替换。':'管理员的记录同步后会自动加入，每位最多 10 条。';
-  container.innerHTML=data.cases.map((row,index)=>{
-   const a=row.annotation,decision=a.status==='submitted'?outcome(a):'',watched=playbackAssessment(a.status==='submitted'?a.submitted_watch:a.watch,a.duration).valid;
-   return '<section class="case"><h3>案例 '+(index+1)+' · 管理员'+(decision?' · '+h(OUTCOMES[decision]):'')+'</h3><p><code>'+h(a.record_id)+'</code></p><p>'+h(reasons[decision]||'')+'</p>'+(!watched?'<p class="notice">该条播放记录不完整，观看情况需复核。</p>':'')+'<div class="comparison"><div><h4>原始预标注</h4>'+row.original.map(card).join('')+'</div><div><h4>管理员标注</h4>'+a.issues.map(card).join('')+'</div></div></section>';
-  }).join('');
- }catch{status.textContent='示例暂时无法读取，请稍后重新打开本页。';}
- finally{clearTimeout(timer);}
+import {escapeHTML as h,videoUrl} from './core.js?v=12-cloud';
+const examples=[
+ {id:'physion_eval::full::T1_01334',pass:true,title:'冰块融化异常',reason:'融水增加时冰块反而变大，物理问题明确，修复目标清楚。'},
+ {id:'physion_eval::full::T1_07464',pass:true,title:'纸张自行裂开',reason:'剪刀停下后纸张仍自行裂开，异常集中，可以明确描述修复要求。'},
+ {id:'physion_eval::full::T1_03453',pass:false,title:'人物和篮球多处变形',reason:'肢体穿插、篮球塌缩等问题交织，整体质量过差，不适合局部修复。'},
+ {id:'physion_eval::full::T1_09608',pass:false,title:'工具形态混乱',reason:'工具变形并穿过手指，多处异常交织，难以形成清晰的修复目标。'}
+];
+const container=document.querySelector('#guide-examples');
+container.innerHTML=examples.map((example,index)=>'<section class="example"><h3><span class="decision'+(example.pass?'':' reject')+'">'+(example.pass?'通过':'不通过')+'</span>'+h(example.title)+'</h3><video id="example-'+index+'" controls playsinline preload="metadata" aria-label="'+h(example.title)+'示例视频"></video><p>'+h(example.reason)+'</p><div class="video-error" hidden><button type="button">重试视频</button></div></section>').join('');
+async function loadVideos(){
+ let manifest={};try{const response=await fetch('./data/video-manifest.json?v=8-full');if(response.ok)manifest=(await response.json()).videos||{};}catch{}
+ examples.forEach((example,index)=>{
+  const video=document.querySelector('#example-'+index),error=video.parentElement.querySelector('.video-error'),retry=error.querySelector('button'),item=manifest[example.id];
+  const urls=[...(item?.file?[new URL(item.file,location.href).href]:[]),videoUrl(example.id,item?.upstream_file)];
+  let source=0;
+  video.addEventListener('error',()=>{if(source+1<urls.length){source++;video.src=urls[source];video.load();}else error.hidden=false;});
+  video.addEventListener('loadeddata',()=>{error.hidden=true;});
+  retry.onclick=()=>{source=0;error.hidden=true;video.src=urls[source];video.load();};
+  video.src=urls[source];
+ });
 }
 document.querySelector('#print-guide').onclick=()=>window.print();
 document.querySelector('#download-guide').onclick=()=>{
- const copy=document.documentElement.cloneNode(true);copy.querySelectorAll('script,.actions').forEach(el=>el.remove());
- const blob=new Blob(['<!doctype html>\n'+copy.outerHTML],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='PhysFixBench_标注守则与管理员案例.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
+ const copy=document.documentElement.cloneNode(true);copy.querySelectorAll('script,.actions,.video-error').forEach(el=>el.remove());
+ const blob=new Blob(['<!doctype html>\n'+copy.outerHTML],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='PhysFixBench_标注守则.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);
 };
-void load();
+void loadVideos();

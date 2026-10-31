@@ -59,6 +59,6 @@ export function mountCloudUI({registry,cloud,getState,save,refresh,beforeResolve
  }
  $('#download-cloud').onclick=async()=>{const exports=await readAll();if(exports)download({export_type:'team_backups',exported_at:new Date().toISOString(),exports},'physfix_team');};
  $('#read-cloud-merge').onclick=async()=>{const exports=await readAll();if(exports)document.dispatchEvent(new CustomEvent('physfix-cloud-review',{detail:exports}));};
- $('#guide-button').onclick=()=>window.open('./guide.html?v=15-demos','physfix-guide');
+ $('#guide-button').onclick=()=>window.open('./guide.html?v=16-guide','physfix-guide');
  return {status,setManifest:value=>delivery.setManifest(value),stop:()=>{segment.stop();delivery.dispose();}};
 }
