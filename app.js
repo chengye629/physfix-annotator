@@ -1,6 +1,6 @@
 import {compareApproval} from './approval.js?v=12-cloud';
 import {CloudSync} from './cloud-sync.js?v=12-cloud';
-import {mountCloudUI} from './cloud-ui.js?v=16-guide';
+import {mountCloudUI} from './cloud-ui.js?v=17-progress';
 import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=12-cloud';
 import {VideoDelivery} from './video-delivery.js?v=12-cloud';
 import {loadDataset} from './dataset-loader.js?v=12-cloud';
@@ -39,7 +39,7 @@ delivery.mode=['auto','site','original'].includes(state.video_source)?state.vide
 const segment=new SegmentPlayer(video,{onActiveChange:index=>{$$('.issue').forEach(el=>el.classList.toggle('active',index!==null&&Number(el.dataset.issue)===index));},onError:toast});
 function draftStatus(){const a=active(),stage=annotationStage(a);document.getElementById('draft-status').dataset.status=a?.status||'draft';$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[outcome(a)]||''}`:stage==='draft'?'草稿已保存':'预标注';}
 function renderGroups(){
-  $('#group-filter').hidden=person!==null;$('#merge-button').hidden=!isAdmin();$('#manage-button').hidden=!isAdmin();$('#copy-group-link').textContent='复制入口链接';
+  $('#group-filter').hidden=person!==null;$('#merge-button').hidden=!isAdmin();$('#manage-button').hidden=!isAdmin();$('#team-progress-button').hidden=!isAdmin();$('#copy-group-link').textContent='复制入口链接';
   if(person!==null){$('#group-filter').innerHTML='<option value="all">我的任务</option>';$('#group-filter').value='all';return;}
   const source=state.source_filter,all=groupTasks(tasks,'all',source);
   $('#group-filter').innerHTML='<option value="all">全部 '+all.length+' 条</option>'+Array.from({length:Math.ceil(tasks.length/GROUP_SIZE)},(_,i)=>({i,list:groupTasks(tasks,String(i),source)})).filter(v=>v.list.length).map(({i})=>`<option value="${i}">${i*GROUP_SIZE+1}–${Math.min((i+1)*GROUP_SIZE,tasks.length)}</option>`).join('');

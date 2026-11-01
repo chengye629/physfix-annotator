@@ -95,3 +95,16 @@ header{height:auto;min-height:72px;padding-top:12px;padding-bottom:12px;flex-wra
 @media(max-width:600px){.header-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.header-actions button{min-width:0;font-size:12px}.example-layout,.conflict-columns{grid-template-columns:1fr}#example-list{max-height:230px;overflow:auto}}
 
 .entry-notice{font-size:13px;line-height:1.7;padding:10px 12px;background:#f0f4ff;border:1px solid #dce5fa;border-radius:8px}.entry-notice a{color:#3859b9}
+
+#team-progress-button{background:var(--accent-soft);border-color:#dbe3fc;color:#3654b5}
+#team-progress-dialog{width:min(1100px,calc(100vw - 32px))}
+.team-progress-actions{display:flex;gap:8px}
+#team-progress-status{color:#3654b5;font-weight:600;font-variant-numeric:tabular-nums}
+.team-progress-table{font-variant-numeric:tabular-nums;white-space:nowrap}
+.team-progress-table th,.team-progress-table td{text-align:center}
+.team-progress-table th:first-child,.team-progress-table td:first-child{text-align:left}
+.team-progress-table tbody tr:hover{background:#f7f9ff}
+.person-completion{min-width:112px}
+.person-completion span{display:block}
+.person-completion progress{display:block;width:100%;height:6px;margin:5px 0;accent-color:var(--accent)}
+.team-progress-note{font-size:13px;margin-bottom:0;color:var(--muted)}
