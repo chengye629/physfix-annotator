@@ -1,5 +1,6 @@
+import {REVIEW_CAMPAIGN,REVIEW_TASKS} from './review-campaign.js';
 import {STATIC_ASSETS} from './static-assets.js';
-import {classifyApproval,stableStringify,outcome} from './approval.js';
+import {classifyApproval,stableStringify,outcome,compareApproval} from './approval.js';
 import {BASELINES} from './baselines.js';
 import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,PARTICIPANTS,participantFor,nameKey} from './participants.js';
 export const PLAN=ASSIGNMENT_PLAN;
@@ -60,6 +61,7 @@ async function handle(request,env){
  if(path==='/api/demos'&&request.method==='GET')return {data:await publishedDemos(env)};
  if(path==='/api/claim'&&request.method==='POST')return {data:await claim(request,env)};
  if(['/api/annotations','/api/annotations/sync','/api/examples','/api/admin/annotations'].includes(path)){const owner=await authorize(request,env,path==='/api/admin/annotations');return {data:await annotationRoute(request,env,owner,url)};}
+ if(['/api/admin/reviews','/api/admin/reviews/save'].includes(path)){const owner=await authorize(request,env,true);return {data:await adminReviewRoute(request,env,owner,url)};}
  if(path==='/api/lease'&&request.method==='GET'){
   const row=await authorize(request,env);
   if(row.claim_id!==url.searchParams.get('claim_id'))throw new ApiError(410,'任务已调整，请重新进入。','claim_released');
@@ -186,4 +188,47 @@ async function publishedDemos(env){
  }
  const rows=(await env.DB.prepare('SELECT payload,frozen_at FROM demo_snapshots ORDER BY frozen_at,source_key').all()).results;
  return {frozen:true,per_admin_limit:10,snapshot_count:rows.length,cases:rows.flatMap(row=>JSON.parse(row.payload))};
+}
+
+const reviewTaskById=new Map(REVIEW_TASKS.map(task=>[task.record_id,task]));
+const reviewKey=id=>JSON.stringify([REVIEW_CAMPAIGN.id,id]);
+const reviewRow=row=>row?{payload:JSON.parse(row.payload),version:row.version,saved_at:row.saved_at,reviewer:row.reviewer_name}:null;
+async function adminReviewRoute(request,env,owner,url){
+ const path=url.pathname;
+ if(path==='/api/admin/reviews'&&request.method==='GET'){
+  const stored=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(REVIEW_CAMPAIGN.id).all()).results;
+  const sources=(await env.DB.prepare('SELECT * FROM annotations WHERE record_id IN ('+REVIEW_TASKS.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...REVIEW_TASKS.map(t=>t.record_id)).all()).results;
+  const tasks=REVIEW_TASKS.map(t=>{const source=sources.find(r=>r.record_id===t.record_id&&r.annotator_id===t.original_annotator.id);return {record_id:t.record_id,assignee:t.assignee,audit:t.audit,audit_source_version:t.audit_source_version,source_version:source?.version??t.audit_source_version,original_annotation:source?JSON.parse(source.payload):t.snapshot_annotation,review:reviewRow(stored.find(row=>row.record_id===t.record_id))};});
+  return {campaign:REVIEW_CAMPAIGN,tasks};
+ }
+ if(path==='/api/admin/reviews/save'&&request.method==='POST'){
+  const data=await body(request,524288),a=data.review,task=reviewTaskById.get(a?.record_id);
+  if(data.campaign_id!==REVIEW_CAMPAIGN.id||!task)throw new ApiError(400,'未知复核任务。');
+  if(task.assignee!==owner.display_name)throw new ApiError(403,'此任务分配给其他管理员，仅供查看。');
+  if(!Number.isSafeInteger(data.base_version)||data.base_version<0)throw new ApiError(400,'复核版本无效。');
+  if(!['draft','submitted'].includes(a.status)||!['','pass','pass_modified','reject_no_clear_issue','reject_poor_quality'].includes(a.decision)||!Array.isArray(a.issues)||a.issues.length>50||typeof a.note!=='string'||a.note.length>4000||!Number.isSafeInteger(a.source_version)||typeof a.updated_at!=='string'||!Number.isFinite(Date.parse(a.updated_at)))throw new ApiError(400,'复核内容格式无效。');
+  for(const c of a.issues)if(!c||typeof c.timestamp!=='string'||c.timestamp.length>80||typeof c.problem!=='string'||c.problem.length>4000||typeof c.expected!=='string'||c.expected.length>4000)throw new ApiError(400,'卡片格式无效。');
+  const source=await env.DB.prepare('SELECT payload,version FROM annotations WHERE record_key=?1').bind(recordKey(task.original_annotator.id,a.record_id)).first();
+  const sourceVersion=source?.version??task.audit_source_version,original=source?JSON.parse(source.payload):task.snapshot_annotation;
+  if(a.status==='submitted'){
+   if(!a.decision)throw new ApiError(400,'请选择复核结果。');
+   if(a.source_version!==sourceVersion)throw new ApiError(409,'原标注已更新，请刷新核对后再提交。','review_source_changed');
+   if(a.decision.startsWith('pass')){
+    if(!a.issues.length||a.issues.some(c=>!c.timestamp.trim()||!c.problem.trim()||!c.expected.trim()))throw new ApiError(400,'通过时请填写完整问题卡片。');
+    const changed=compareApproval(a,original.issues)==='modified';
+    if(a.decision==='pass'&&changed)throw new ApiError(400,'卡片已修改，请选择修改卡片后通过。');
+    if(a.decision==='pass_modified'&&!changed)throw new ApiError(400,'卡片未修改，请选择确认通过。');
+   }
+  }
+  const clean={record_id:a.record_id,status:a.status,decision:a.decision,issues:a.issues.map(c=>({timestamp:c.timestamp,problem:c.problem,expected:c.expected})),note:a.note,source_version:a.source_version,updated_at:a.updated_at};
+  const payload=stableStringify(clean),key=reviewKey(a.record_id),time=new Date().toISOString(),eventId=await digest(key+payload);
+  const results=await env.DB.batch([
+   env.DB.prepare('INSERT OR IGNORE INTO admin_review_history(event_id,review_key,payload,created_at) VALUES(?1,?2,?3,?4)').bind(eventId,key,payload,time),
+   env.DB.prepare('INSERT INTO admin_reviews(review_key,campaign_id,record_id,reviewer_name,payload,version,saved_at) SELECT ?1,?2,?3,?4,?5,1,?6 WHERE ?7=0 OR EXISTS(SELECT 1 FROM admin_reviews WHERE review_key=?1) ON CONFLICT(review_key) DO UPDATE SET payload=excluded.payload,version=admin_reviews.version+1,saved_at=excluded.saved_at WHERE admin_reviews.version=?7 AND admin_reviews.payload<>excluded.payload').bind(key,REVIEW_CAMPAIGN.id,a.record_id,owner.display_name,payload,time,data.base_version),
+   env.DB.prepare('SELECT * FROM admin_reviews WHERE review_key=?1').bind(key)
+  ]);
+  const row=results[2].results[0];if(!row||row.payload!==payload)throw new ApiError(409,'另一窗口已保存新版本，请刷新后选择要保留的内容。','review_conflict');
+  return {review:reviewRow(row)};
+ }
+ throw new ApiError(404,'接口不存在。');
 }

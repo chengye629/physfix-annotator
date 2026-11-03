@@ -41,3 +41,19 @@ export const demoSnapshots=sqliteTable('demo_snapshots',{
  payload:text('payload').notNull(),
  frozenAt:text('frozen_at').notNull()
 });
+
+export const adminReviews=sqliteTable('admin_reviews',{
+ reviewKey:text('review_key').primaryKey(),
+ campaignId:text('campaign_id').notNull(),
+ recordId:text('record_id').notNull(),
+ reviewerName:text('reviewer_name').notNull(),
+ payload:text('payload').notNull(),
+ version:integer('version').notNull(),
+ savedAt:text('saved_at').notNull()
+});
+export const adminReviewHistory=sqliteTable('admin_review_history',{
+ eventId:text('event_id').primaryKey(),
+ reviewKey:text('review_key').notNull(),
+ payload:text('payload').notNull(),
+ createdAt:text('created_at').notNull()
+});
