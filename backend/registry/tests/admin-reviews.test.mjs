@@ -4,14 +4,14 @@ import worker from '../worker/index.js';
 import {REVIEW_CAMPAIGN,REVIEW_TASKS} from '../worker/review-campaign.js';
 import {localDatabase} from './sqlite-adapter.mjs';
 function setup(){const DB=localDatabase();return {DB,async request(path,body,token){const r=await worker.fetch(new Request('https://registry.test'+path,{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json'}:{}),...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})}),{DB,PRODUCTION:true});return {status:r.status,data:await r.json()};}};}
-test('83 tasks are balanced, exclude self review, and only admins can read or assigned admin can save',async()=>{
+test('Extended tasks are balanced, exclude self review, and only admins can read or assigned admin can save',async()=>{
  const api=setup();try{
- assert.equal(REVIEW_TASKS.length,83);assert.equal(new Set(REVIEW_TASKS.map(t=>t.record_id)).size,83);
- assert.deepEqual(REVIEW_CAMPAIGN.reviewers.map(n=>REVIEW_TASKS.filter(t=>t.assignee===n).length),[28,28,27]);
+ assert.equal(REVIEW_TASKS.length,REVIEW_CAMPAIGN.task_count);assert.equal(new Set(REVIEW_TASKS.map(t=>t.record_id)).size,REVIEW_CAMPAIGN.task_count);
+ const counts=REVIEW_CAMPAIGN.reviewers.map(n=>REVIEW_TASKS.filter(t=>t.assignee===n).length);assert.ok(Math.max(...counts)-Math.min(...counts)<=1);
  assert.ok(REVIEW_TASKS.every(t=>t.assignee!==t.original_annotator.name&&t.audit.recommendation!=='keep'));
  const task=REVIEW_TASKS[0],owner=(await api.request('/api/claim',{name:task.assignee})).data,other=(await api.request('/api/claim',{name:REVIEW_CAMPAIGN.reviewers.find(n=>n!==task.assignee)})).data,member=(await api.request('/api/claim',{name:'陈广宇'})).data;
  assert.equal((await api.request('/api/admin/reviews')).status,403);assert.equal((await api.request('/api/admin/reviews',null,member.token)).status,403);
- assert.equal((await api.request('/api/admin/reviews',null,owner.token)).data.tasks.length,83);
+ assert.equal((await api.request('/api/admin/reviews',null,owner.token)).data.tasks.length,REVIEW_CAMPAIGN.task_count);
  const review={record_id:task.record_id,status:'draft',decision:'',issues:task.snapshot_annotation.issues,note:'复核意见',source_version:task.audit_source_version,updated_at:'2026-11-03T13:00:00Z'};
  const payload={campaign_id:REVIEW_CAMPAIGN.id,base_version:0,review};assert.equal((await api.request('/api/admin/reviews/save',payload,other.token)).status,403);
  const first=await api.request('/api/admin/reviews/save',payload,owner.token);assert.equal(first.status,200);assert.equal(first.data.review.version,1);

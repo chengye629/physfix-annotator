@@ -205,7 +205,8 @@ async function adminReviewRoute(request,env,owner,url){
  const path=url.pathname;
  if(path==='/api/admin/reviews'&&request.method==='GET'){
   const stored=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(REVIEW_CAMPAIGN.id).all()).results;
-  const sources=(await env.DB.prepare('SELECT * FROM annotations WHERE record_id IN ('+REVIEW_TASKS.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...REVIEW_TASKS.map(t=>t.record_id)).all()).results;
+  const sources=[];
+  for(let start=0;start<REVIEW_TASKS.length;start+=80){const page=REVIEW_TASKS.slice(start,start+80);sources.push(...(await env.DB.prepare('SELECT * FROM annotations WHERE record_id IN ('+page.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...page.map(t=>t.record_id)).all()).results);}
   const tasks=REVIEW_TASKS.map(t=>{const source=sources.find(r=>r.record_id===t.record_id&&r.annotator_id===t.original_annotator.id);return {record_id:t.record_id,assignee:t.assignee,audit:t.audit,audit_source_version:t.audit_source_version,source_version:source?.version??t.audit_source_version,original_annotation:source?JSON.parse(source.payload):t.snapshot_annotation,review:reviewRow(stored.find(row=>row.record_id===t.record_id))};});
   return {campaign:REVIEW_CAMPAIGN,tasks};
  }
