@@ -1,3 +1,5 @@
+import {HISTORICAL_REVIEWS} from './human-reviews.js';
+import {buildQualityStatistics} from './quality-metrics.js';
 import {REVIEW_CAMPAIGN,REVIEW_TASKS} from './review-campaign.js';
 import {STATIC_ASSETS} from './static-assets.js';
 import {classifyApproval,stableStringify,outcome,compareApproval} from './approval.js';
@@ -62,6 +64,12 @@ async function handle(request,env){
  if(path==='/api/claim'&&request.method==='POST')return {data:await claim(request,env)};
  if(['/api/annotations','/api/annotations/sync','/api/examples','/api/admin/annotations'].includes(path)){const owner=await authorize(request,env,path==='/api/admin/annotations');return {data:await annotationRoute(request,env,owner,url)};}
  if(['/api/admin/reviews','/api/admin/reviews/save'].includes(path)){const owner=await authorize(request,env,true);return {data:await adminReviewRoute(request,env,owner,url)};}
+ if(path==='/api/admin/quality'&&request.method==='GET'){
+  await authorize(request,env,true);
+  const annotations=(await env.DB.prepare('SELECT * FROM annotations').all()).results.map(cloudRow);
+  const reviews=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(REVIEW_CAMPAIGN.id).all()).results;
+  return {data:buildQualityStatistics(annotations,HISTORICAL_REVIEWS,REVIEW_TASKS,reviews,PARTICIPANTS.map(p=>p.name))};
+ }
  if(path==='/api/lease'&&request.method==='GET'){
   const row=await authorize(request,env);
   if(row.claim_id!==url.searchParams.get('claim_id'))throw new ApiError(410,'任务已调整，请重新进入。','claim_released');
