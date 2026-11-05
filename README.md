@@ -6,7 +6,13 @@
 
 备用入口：https://physfix-annotator-chengye629.goldenstoat259.chatgpt.site/ 。与原站共用后台和分工；浏览器本机存储按域名隔离，旧内容尚未同步时，应在原站导出 JSON 后在备用入口导入。不要清理原站浏览器数据。
 
-606 条任务：Physion 300、RoboJudge 115、PhyGround 91、VideoPhy2 100。9 人分工保持不变，按名单固定为前三人各 68 条，其余各 67 条。
+## 批次
+
+- batch1：保留已有标注、复核和统计；原 Shihua 未标的 67 条移入 batch2，另外八人的任务不变。
+- [batch2](https://chengye629.github.io/physfix-annotator/batch2/)：317 条新视频 + 67 条转入视频，共 384 条。前六人各 43 条，后三人各 42 条。中文、英文姓名均可进入固定任务。
+- 两批使用独立的本机存储、后台标注表和导出数据集标识。原始视频编号保持不变。batch2 统计只包含第二批记录。
+
+下表任务数为 batch1；batch2 任务数按上面的分配。
 
 ## 姓名与权限
 
@@ -20,7 +26,7 @@
 | 陈广宇 | Chen Guangyu / Guangyu Chen | 67 | 成员 |
 | 林炬乙 | Lin Juyi / Juyi Lin | 67 | 管理员 |
 | 刘皓天 | Liu Haotian / Haotian Liu | 67 | 成员 |
-| Shihua | Shihua / Shi Hua | 67 | 成员 |
+| 杨晓萌 | Yang Xiaomeng / Xiaomeng Yang | 0（进入 batch2） | 成员 |
 
 统一入口填写姓名，不分个人链接。拼音支持大小写、空格、连写和常见姓名顺序。陈广宇曾误写为陈广宁；旧中文、旧拼音仅作为兼容别名，仍回到第 6 份任务。已有登记改名或提权均保留 claim ID、标注人 ID、会话及任务位。这里沿用内部团队的姓名识别，不增设密码。
 

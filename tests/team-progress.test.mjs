@@ -9,7 +9,7 @@ const record=(index,changes={},saved_at='2026-11-01T00:00:00Z')=>({annotator:{id
 
 test('lists all nine people with fixed task counts even before anyone syncs',()=>{
  const result=buildTeamProgress(tasks,[],[]);
- assert.equal(result.length,9);assert.deepEqual(result.map(p=>p.assigned),[68,68,68,67,67,67,67,67,67]);assert.equal(result.reduce((n,p)=>n+p.assigned,0),606);
+ assert.equal(result.length,9);assert.deepEqual(result.map(p=>p.assigned),[68,68,68,67,67,67,67,67,0]);assert.equal(result.reduce((n,p)=>n+p.assigned,0),539);
  assert.ok(result.every(p=>p.submitted===0&&p.remaining===p.assigned&&!p.last_synced));
 });
 test('classifies old approvals, counts rejections, excludes drafts and historical tasks, without editing records',()=>{
@@ -26,5 +26,5 @@ test('merges compatible names and IDs and uses the latest synced version of a vi
 test('reassigned tasks are counted once and prior records remain historical',()=>{
  const replacement={claim_id:'new',display_name:'临时成员',annotator_id:'new-id',slot:6,role:'member'};
  const result=buildTeamProgress(tasks,[{...claim,claim_id:null,annotator_id:undefined},replacement],[record(5)]);
- assert.equal(result.reduce((n,p)=>n+p.assigned,0),606);assert.equal(result[5].assigned,0);assert.equal(result[5].historical,1);assert.equal(result.at(-1).assigned,67);
+ assert.equal(result.reduce((n,p)=>n+p.assigned,0),539);assert.equal(result[5].assigned,0);assert.equal(result[5].historical,1);assert.equal(result.at(-1).assigned,67);
 });

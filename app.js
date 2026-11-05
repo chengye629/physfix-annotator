@@ -1,18 +1,18 @@
-import {compareApproval} from './approval.js?v=12-cloud';
-import {CloudSync} from './cloud-sync.js?v=12-cloud';
-import {mountCloudUI} from './cloud-ui.js?v=17-progress';
-import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=12-cloud';
-import {VideoDelivery} from './video-delivery.js?v=12-cloud';
-import {loadDataset} from './dataset-loader.js?v=12-cloud';
-import {SegmentPlayer} from './segment-player.js?v=12-cloud';
-import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=12-cloud';
-import {PlaybackTracker,playbackAssessment} from './playback.js?v=12-cloud';
-import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=12-cloud';
-import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=12-cloud';
-import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=12-cloud';
-import {participantFor} from './participants.js?v=12-cloud';
-import {RegistryClient,RegistryError} from './registry-client.js?v=12-cloud';
-import {REGISTRY_API} from './registry-config.js?v=12-cloud';
+import {compareApproval} from './approval.js?v=23-batches';
+import {CloudSync} from './cloud-sync.js?v=23-batches';
+import {mountCloudUI} from './cloud-ui.js?v=23-batches';
+import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=23-batches';
+import {VideoDelivery} from './video-delivery.js?v=23-batches';
+import {loadDataset} from './dataset-loader.js?v=23-batches';
+import {SegmentPlayer} from './segment-player.js?v=23-batches';
+import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=23-batches';
+import {PlaybackTracker,playbackAssessment} from './playback.js?v=23-batches';
+import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=23-batches';
+import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=23-batches';
+import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=23-batches';
+import {participantFor} from './participants.js?v=23-batches';
+import {RegistryClient,RegistryError} from './registry-client.js?v=23-batches';
+import {REGISTRY_API} from './registry-config.js?v=23-batches';
 const registry=new RegistryClient(REGISTRY_API);
 let cloud=null,cloudUI=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -119,7 +119,7 @@ async function enterAnnotation(value){
   delivery.mode=['auto','site','original'].includes(state.video_source)?state.video_source:'auto';$('#video-source').value=delivery.mode;
   refreshScope();entered=true;$('#entry').hidden=true;$('#annotation-app').hidden=false;$('#entry-error').hidden=true;$('#entry-export').hidden=true;
   history.replaceState(null,'',new URL(location.pathname,location.href).href);
-  const selected=selectedTasks(),resumed=selected.find(t=>t.record_id===state.current_id)||selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0];showTask(tasks.indexOf(resumed));
+  const selected=selectedTasks(),resumed=selected.find(t=>t.record_id===state.current_id)||selected.find(t=>state.annotations[t.record_id]?.status!=='submitted')||selected[0];showTask(tasks.indexOf(resumed));if(!selected.length){$('#load-error').hidden=false;$('#load-error').textContent='batch1 的未标任务已转入 batch2，请点击上方 batch2 进入。';}
  }catch(error){$('#entry-error').textContent=error.message;$('#entry-error').hidden=false;$('#entry-export').hidden=!state.annotator.name||!Object.keys(state.annotations).length;}
  finally{entering=false;$('#enter-button').disabled=!ready;$('#enter-button').textContent='进入标注';}
 }

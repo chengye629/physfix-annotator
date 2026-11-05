@@ -4,11 +4,11 @@ import worker,{PLAN} from '../worker/index.js';
 import {PARTICIPANTS} from '../worker/participants.js';
 import {localDatabase} from './sqlite-adapter.mjs';
 function setup(){const DB=localDatabase(),env={DB,PRODUCTION:true};return {DB,async request(path,body,token){const response=await worker.fetch(new Request('https://registry.test'+path,{method:body?'POST':'GET',headers:{Origin:'https://chengye629.github.io',...(body?{'Content-Type':'application/json'}:{}),...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})}),env);return {status:response.status,data:await response.json()};}};}
-test('nine preset people receive their fixed slots regardless of arrival order and cover all 606 tasks',async()=>{
+test('nine preset people receive their fixed slots regardless of arrival order and exclude the transferred ninth pack',async()=>{
  const api=setup();try{
  const results=await Promise.all([...PARTICIPANTS].reverse().map(p=>api.request('/api/claim',{name:p.aliases[1]})));
  for(let i=0;i<9;i++){const expected=PARTICIPANTS[8-i],result=results[i];assert.equal(result.status,200);assert.equal(result.data.person,expected.person);assert.equal(result.data.annotator.name,expected.name);}
- assert.deepEqual(results.map(r=>r.data.task_count).sort(),[67,67,67,67,67,67,68,68,68]);assert.equal(results.reduce((sum,r)=>sum+r.data.task_count,0),606);
+ assert.deepEqual(results.map(r=>r.data.task_count).sort(),[0,67,67,67,67,67,68,68,68]);assert.equal(results.reduce((sum,r)=>sum+r.data.task_count,0),539);
  assert.equal((await api.request('/api/claim',{name:'未知姓名'})).data.code,'unknown_participant');
  }finally{api.DB.close();}
 });

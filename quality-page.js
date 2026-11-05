@@ -1,11 +1,11 @@
-import {mountDeepInsights} from './deep-ui.js?v=22-deep';
-import {renderDetailedAnalysis,detailedExport} from './detailed-ui.js?v=21-analysis';
-import {groupAuditBySource} from './source-statistics.js?v=20-source-stats';
-import {RegistryClient} from './registry-client.js?v=12-cloud';
-import {REGISTRY_API} from './registry-config.js?v=12-cloud';
-import {escapeHTML as h} from './core.js?v=12-cloud';
-import {loadDataset} from './dataset-loader.js?v=12-cloud';
-import {videoMetadata} from './video-metadata.js?v=19-quality';
+import {mountDeepInsights} from './deep-ui.js?v=23-batches';
+import {renderDetailedAnalysis,detailedExport} from './detailed-ui.js?v=23-batches';
+import {groupAuditBySource} from './source-statistics.js?v=23-batches';
+import {RegistryClient} from './registry-client.js?v=23-batches';
+import {REGISTRY_API} from './registry-config.js?v=23-batches';
+import {escapeHTML as h} from './core.js?v=23-batches';
+import {loadDataset} from './dataset-loader.js?v=23-batches';
+import {videoMetadata} from './video-metadata.js?v=23-batches';
 const $=s=>document.querySelector(s),registry=new RegistryClient(REGISTRY_API),pct=n=>n===null?'—':(n*100).toFixed(1)+'%';let data,tasks=[];
 async function refresh(){try{$('#quality-refresh').disabled=true;data=await registry.request('/api/admin/quality');const t=data.totals;$('#quality-total').innerHTML=[['最终审核通过',t.final_accepted],['待改卡片',t.pending_card_edits],['筛选 Precision',pct(t.precision)],['已审核',t.reviewed_total],['其中 AI 通过',t.ai_accepted]].map(([label,value])=>`<article>${label}<strong>${value}</strong></article>`).join('');$('#quality-rows').innerHTML=data.rows.map(r=>`<tr><td><b>${h(r.name)}</b></td><td>${r.ai_accepted}</td><td>${r.submitted}</td><td>${r.submitted_passed}</td><td>${r.precision_denominator}${r.uncertain?'（另 '+r.uncertain+' 待定）':''}</td><td>${r.selection_correct}</td><td>${r.selection_rejected}</td><td><b>${pct(r.precision)}</b></td><td>${r.final_accepted}</td><td>${r.pending_card_edits}</td></tr>`).join('');$('#quality-time').textContent='更新于 '+new Date(data.generated_at).toLocaleString('zh-CN')+(t.stale_review?' · '+t.stale_review+' 条原标注更新后待重新确认':'');$('#quality-error').hidden=true;renderSourceStats();renderDetailedAnalysis(data,tasks);mountDeepInsights(data,tasks);}catch(e){$('#quality-error').textContent=e.message;$('#quality-error').hidden=false;}finally{$('#quality-refresh').disabled=false;}}
 function models(){const q=$('#model-search').value.trim().toLowerCase(),rows=tasks.map(t=>({...videoMetadata(t),record_id:t.record_id})).filter(r=>Object.values(r).join(' ').toLowerCase().includes(q));$('#model-count').textContent=rows.length+' 条';$('#model-rows').innerHTML=rows.map(r=>`<tr><td class="video-key">${h(r.record_id)}</td><td>${h(r.source_label)}</td><td>${h(r.model)}</td><td>${h(r.generator||'未提供')}</td></tr>`).join('');}

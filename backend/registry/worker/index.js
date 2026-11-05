@@ -1,3 +1,4 @@
+import {BATCH2_DATA} from './batch2-data.js';
 import {PHYSICS_EVIDENCE} from './physics-evidence.js';
 import {HISTORICAL_REVIEWS} from './human-reviews.js';
 import {buildQualityStatistics} from './quality-metrics.js';
@@ -33,7 +34,7 @@ async function body(request,maxBytes=4096){
 const SELECT_ACTIVE='SELECT * FROM registrations WHERE plan=?1 AND name_key=?2 AND released_at IS NULL';
 const SELECT_ID='SELECT * FROM registrations WHERE plan=?1 AND claim_id=?2 AND released_at IS NULL';
 const RELEASE='UPDATE registrations SET released_at=?1,released_by=?2,release_id=?3 WHERE plan=?4 AND claim_id=?5 AND released_at IS NULL';
-const countFor=slot=>slot===null?0:Math.floor(DATASET_COUNT/CAPACITY)+(slot<=DATASET_COUNT%CAPACITY?1:0);
+const countFor=slot=>slot===null||slot===9?0:Math.floor(DATASET_COUNT/CAPACITY)+(slot<=DATASET_COUNT%CAPACITY?1:0);
 function mapped(row,withToken=false){
  return {plan:PLAN,participants:CAPACITY,person:row.slot,claim_id:row.claim_id,task_count:countFor(row.slot),annotator:{id:row.annotator_id,name:row.display_name},role:row.role,...(withToken?{token:row.session_token}:{})};
 }
@@ -61,6 +62,7 @@ async function handle(request,env){
  const url=new URL(request.url),path=url.pathname;
  if(path==='/health')return {data:{ready:!!env.DB,plan:PLAN,participants:CAPACITY,annotations:true,api_version:2}};
  if(!env.DB)throw new ApiError(503,'登记服务暂时不可用。','storage_unavailable');
+ if(path.startsWith('/api/batch2/'))return {data:await batch2Route(request,env,url)};
  if(path==='/api/demos'&&request.method==='GET')return {data:await publishedDemos(env)};
  if(path==='/api/claim'&&request.method==='POST')return {data:await claim(request,env)};
  if(['/api/annotations','/api/annotations/sync','/api/examples','/api/admin/annotations'].includes(path)){const owner=await authorize(request,env,path==='/api/admin/annotations');return {data:await annotationRoute(request,env,owner,url)};}
@@ -73,7 +75,7 @@ async function handle(request,env){
   const physics_evidence={...PHYSICS_EVIDENCE};
   for(const row of reviews){const a=JSON.parse(row.payload);if(a.status==='submitted'&&!physics_evidence[a.record_id])physics_evidence[a.record_id]={issues:a.issues,pending_issues:[],note:a.note||'',basis:'admin_review_cards'};}
   for(const t of REVIEW_TASKS)if(!physics_evidence[t.record_id])physics_evidence[t.record_id]={issues:t.snapshot_annotation.issues,pending_issues:[],basis:'annotation_cards'};
-  return {data:{...statistics,physics_evidence}};
+  return {data:{...statistics,physics_evidence,transferred_to_batch2:BATCH2_DATA.carried_ids.length}};
  }
  if(path==='/api/lease'&&request.method==='GET'){
   const row=await authorize(request,env);
@@ -113,7 +115,7 @@ async function handle(request,env){
  throw new ApiError(404,'接口不存在。');
 }
 export default {async fetch(request,env){
- const assetPath=new URL(request.url).pathname;const asset=STATIC_ASSETS[assetPath==='/'?'index.html':assetPath.slice(1)];
+ const assetPath=new URL(request.url).pathname;const asset=STATIC_ASSETS[assetPath==='/'?'index.html':assetPath.endsWith('/')?assetPath.slice(1)+'index.html':assetPath.slice(1)];
  if(asset&&['GET','HEAD'].includes(request.method)){const bytes=Uint8Array.from(atob(asset.data),char=>char.charCodeAt(0));return new Response(request.method==='HEAD'?null:bytes,{headers:{'Content-Type':asset.type,'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'}});}
  const origin=request.headers.get('Origin'),self=new URL(request.url).origin;
  const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Vary':'Origin','X-Content-Type-Options':'nosniff'};
@@ -245,4 +247,62 @@ async function adminReviewRoute(request,env,owner,url){
   return {review:reviewRow(row)};
  }
  throw new ApiError(404,'接口不存在。');
+}
+
+async function batch2Route(request,env,url){
+ const path=url.pathname.replace('/api/batch2','/api'),plan=BATCH2_DATA.plan,parts=BATCH2_DATA.participants;
+ const memberFor=name=>participantFor(name),count=slot=>BATCH2_DATA.tasks.filter(t=>t.person===slot).length;
+ const mapped2=(row,token=false)=>({plan,participants:9,person:row.slot,claim_id:row.claim_id,task_count:count(row.slot),annotator:{id:row.annotator_id,name:memberFor(row.display_name)?.name||row.display_name},role:memberFor(row.display_name)?.role||'member',...(token?{token:row.session_token}:{})});
+ if(path==='/api/claim'&&request.method==='POST'){
+  const input=await body(request),member=memberFor(normalizeName(input.name));if(!member)throw new ApiError(400,'未在名单中找到这个姓名。');
+  let row=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND name_key=?2 AND released_at IS NULL').bind(plan,nameKey(member.name)).first();
+  if(!row){
+   const parent=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND slot=?2 AND released_at IS NULL').bind(PLAN,member.person).first();
+   const id=parent?.annotator_id||crypto.randomUUID();
+   await env.DB.prepare('INSERT OR IGNORE INTO registrations(claim_id,plan,slot,name_key,session_token,role,display_name,annotator_id,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)').bind(crypto.randomUUID(),plan,member.person,nameKey(member.name),crypto.randomUUID()+crypto.randomUUID(),member.role,member.name,id,new Date().toISOString()).run();
+   row=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND name_key=?2 AND released_at IS NULL').bind(plan,nameKey(member.name)).first();
+   if(!row)throw new ApiError(409,'任务登记已变化，请刷新重试。');
+   if(parent&&member.person===9&&parent.display_name!==member.name)await env.DB.prepare('UPDATE registrations SET display_name=?1,name_key=?2 WHERE claim_id=?3').bind(member.name,nameKey(member.name),parent.claim_id).run();
+  }
+  return mapped2(row,true);
+ }
+ const token=request.headers.get('Authorization')?.replace(/^Bearer /,'')||'',owner=token?await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND session_token=?2 AND released_at IS NULL').bind(plan,token).first():null;
+ if(!owner)throw new ApiError(403,'请重新填写姓名进入 batch2。');const isAdmin=memberFor(owner.display_name)?.role==='admin';
+ if(path.startsWith('/api/admin/')&&!isAdmin)throw new ApiError(403,'需要管理员权限。');
+ if(path==='/api/lease'&&request.method==='GET'){if(url.searchParams.get('claim_id')!==owner.claim_id)throw new ApiError(410,'任务登记已变化。');return mapped2(owner);}
+ if(path==='/api/annotations'&&request.method==='GET')return {records:(await env.DB.prepare('SELECT * FROM batch2_annotations WHERE annotator_id=?1 ORDER BY record_id').bind(owner.annotator_id).all()).results.map(cloudRow)};
+ if(path==='/api/annotations/sync'&&request.method==='POST'){
+  const input=await body(request,2097152);if(!Array.isArray(input.records)||!input.records.length||input.records.length>20)throw new ApiError(400,'每次同步应包含 1–20 条记录。');const saved=[],conflicts=[];
+  for(const entry of input.records){const a=entry.annotation,t=BATCH2_DATA.tasks.find(t=>t.record_id===a?.record_id);
+   if(!t||!['draft','submitted'].includes(a.status)||!['','pass','reject_no_clear_issue','reject_poor_quality'].includes(a.verdict)||!Array.isArray(a.issues)||a.issues.length>50||!Number.isSafeInteger(a.revision)||a.revision<0||!Number.isFinite(Date.parse(a.updated_at)))throw new ApiError(400,'batch2 标注格式无效。');
+   if(!isAdmin&&owner.slot!==t.person)throw new ApiError(403,'此视频未分配给你。');
+   for(const c of a.issues)if(!c||['timestamp','problem','expected'].some(f=>typeof c[f]!=='string'||c[f].length>(f==='timestamp'?80:4000)))throw new ApiError(400,'问题卡片格式无效。');
+   if(a.status==='submitted'&&!a.verdict)throw new ApiError(400,'缺少提交判定。');
+   if(entry.base_version!==null&&(!Number.isSafeInteger(entry.base_version)||entry.base_version<0))throw new ApiError(400,'同步版本无效。');
+   const normalized=classifyApproval(a,t.issues),payload=stableStringify(normalized),hash=await digest(payload),key=JSON.stringify([owner.annotator_id,a.record_id]),time=new Date().toISOString(),raw=stableStringify(a);
+   const result=await env.DB.batch([
+    env.DB.prepare('INSERT OR IGNORE INTO batch2_annotation_history(event_id,record_key,annotator_id,payload,created_at) VALUES(?1,?2,?3,?4,?5)').bind(await digest(key+raw),key,owner.annotator_id,raw,time),
+    env.DB.prepare('INSERT INTO batch2_annotations(record_key,annotator_id,annotator_name,record_id,payload,content_hash,version,saved_at) VALUES(?1,?2,?3,?4,?5,?6,1,?7) ON CONFLICT(record_key) DO UPDATE SET payload=excluded.payload,content_hash=excluded.content_hash,annotator_name=excluded.annotator_name,version=batch2_annotations.version+1,saved_at=excluded.saved_at WHERE batch2_annotations.version=?8 AND batch2_annotations.content_hash<>excluded.content_hash').bind(key,owner.annotator_id,memberFor(owner.display_name).name,a.record_id,payload,hash,time,entry.base_version??-1),
+    env.DB.prepare('SELECT * FROM batch2_annotations WHERE record_key=?1').bind(key)
+   ]);const row=result[2].results[0];if(row.content_hash===hash)saved.push({record_id:a.record_id,version:row.version});else conflicts.push(cloudRow(row));
+  }return {saved,conflicts};
+ }
+ if(path==='/api/admin/claims'&&request.method==='GET'){
+  const rows=(await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND released_at IS NULL').bind(plan).all()).results;
+  return {plan,participants:9,claims:parts.map(p=>{const row=rows.find(r=>r.slot===p.person);return {claim_id:row?.claim_id||null,slot:p.person,display_name:p.name,annotator_id:row?.annotator_id||null,created_at:row?.created_at||null,role:p.role,task_count:count(p.person)};})};
+ }
+ if(path==='/api/admin/annotations'&&request.method==='GET'){
+  const cursor=Number(url.searchParams.get('cursor')||0),limit=Math.min(100,Number(url.searchParams.get('limit')||50));if(!Number.isSafeInteger(cursor)||cursor<0||!Number.isSafeInteger(limit)||limit<1)throw new ApiError(400,'分页参数无效。');
+  const rows=(await env.DB.prepare('SELECT * FROM batch2_annotations ORDER BY annotator_name,record_id LIMIT ?1 OFFSET ?2').bind(limit+1,cursor).all()).results;return {records:rows.slice(0,limit).map(cloudRow),next_cursor:rows.length>limit?cursor+limit:null};
+ }
+ if(path==='/api/admin/quality'&&request.method==='GET'){
+  const rows=(await env.DB.prepare('SELECT * FROM batch2_annotations').all()).results.map(cloudRow);return {...buildQualityStatistics(rows,[],[],[],parts.map(p=>p.name)),batch:'batch2',physics_evidence:{}};
+ }
+ if(path==='/api/examples'&&request.method==='GET'){
+  let rows=(await env.DB.prepare('SELECT * FROM batch2_annotations ORDER BY saved_at DESC').all()).results.filter(r=>memberFor(r.annotator_name)?.role==='admin'&&JSON.parse(r.payload).status==='submitted');const admins=parts.filter(p=>p.role==='admin').map(p=>({name:p.name,total:rows.filter(r=>r.annotator_name===p.name).length,pass_direct:rows.filter(r=>r.annotator_name===p.name&&outcome(JSON.parse(r.payload))==='pass').length,pass_modified:rows.filter(r=>r.annotator_name===p.name&&outcome(JSON.parse(r.payload))==='pass_modified').length}));
+  const name=url.searchParams.get('name'),decision=url.searchParams.get('outcome');if(name)rows=rows.filter(r=>r.annotator_name===name);if(decision)rows=rows.filter(r=>outcome(JSON.parse(r.payload))===decision);const cursor=Number(url.searchParams.get('cursor')||0);if(!Number.isSafeInteger(cursor)||cursor<0)throw new ApiError(400,'分页参数无效。');return {admins,total:rows.length,records:rows.slice(cursor,cursor+50).map(cloudRow),next_cursor:cursor+50<rows.length?cursor+50:null};
+ }
+ if(path==='/api/admin/release'||path==='/api/admin/reassign')throw new ApiError(409,'batch2 使用固定九人分配，无需重置或转交。');
+ if(path==='/api/admin/reviews'||path==='/api/admin/reviews/save')throw new ApiError(404,'batch2 尚未开始管理员复核。');
+ throw new ApiError(404,'batch2 接口不存在。');
 }

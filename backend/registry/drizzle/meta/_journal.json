@@ -29,6 +29,13 @@
       "when": 1793720066997,
       "tag": "0003_fuzzy_glorian",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793860084726,
+      "tag": "0004_slim_ikaris",
+      "breakpoints": true
     }
   ]
 }

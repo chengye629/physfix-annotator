@@ -6,9 +6,9 @@ import {createDraft,makeExport,normalizeExport} from '../core.js';
 import {personalExportPrefix} from '../annotator-entry.js';
 const tasks=(await readFile(new URL('../data/physfixbench_full.jsonl',import.meta.url),'utf8')).trim().split(/\r?\n/).map(JSON.parse);
 const known=new Set(tasks.map(t=>t.record_id));
-test('nine task packs cover all 606 tasks exactly once, 67 or 68 per person, with all sources balanced',()=>{
+test('batch1 preserves the eight active packs and moves the ninth pack to batch2',()=>{
   const seen=new Set(),counts={};
-  for(let person=1;person<=9;person++){
+  for(let person=1;person<=8;person++){
     const own=assignedTasks(tasks,person);assert.equal(own.length,person<=3?68:67);
     for(const task of own){assert.ok(!seen.has(task.record_id));seen.add(task.record_id);}
     for(const source of ['physion_eval','robojudge','phyground','videophy2']){
@@ -16,9 +16,9 @@ test('nine task packs cover all 606 tasks exactly once, 67 or 68 per person, wit
       (counts[source]??=[]).push(count);
     }
   }
-  assert.equal(seen.size,606);
+  assert.equal(seen.size,539);
   for(const group of Object.values(counts))assert.ok(Math.max(...group)-Math.min(...group)<=1);
-  assert.equal(assignedTasks(tasks,null),tasks);
+  assert.equal(assignedTasks(tasks,null).length,539);assert.equal(assignedTasks(tasks,9).length,0);
 });
 test('personal links contain a single assignment and old group links retain the all-task entry',()=>{
   assert.equal(assignmentLink('https://example.test/?group=2&name=old#x',3),'https://example.test/?person=3');

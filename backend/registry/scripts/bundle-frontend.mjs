@@ -4,6 +4,7 @@ const front=resolve(process.argv[2]||'../physfix-annotator');
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8','.jsonl':'application/x-ndjson; charset=utf-8','.gz':'application/gzip'};
 const files=(await readdir(front)).filter(name=>/\.(html|js|css|svg)$/.test(name)).sort();
 files.push('data/physfixbench_full.jsonl.gz','data/physfixbench_full.jsonl','data/video-manifest.json','data/dataset-manifest.json');
+files.push(...(await readdir(resolve(front,'batch2'))).filter(name=>/\.(html|js|css|svg)$/.test(name)).map(name=>'batch2/'+name));files.push('batch2/data/physfixbench_full.jsonl.gz','batch2/data/physfixbench_full.jsonl','batch2/data/video-manifest.json','batch2/data/dataset-manifest.json');
 const assets={};
 for(const name of files){
  let bytes=await readFile(resolve(front,name));

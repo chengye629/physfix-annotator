@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>视频标注</title><link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=19-quality"><script type="module" src="./app.js?v=19-quality"></script>
+  <link rel="stylesheet" href="./style.css?v=19-quality"><script type="module" src="./app.js?v=23-batches"></script>
 </head>
 <body>
   <section id="entry" aria-label="填写姓名">
     <form id="entry-form" class="entry-card">
-      <h1>视频标注</h1>
+      <h1>batch1 视频标注</h1><p><a class="batch-link" href="./batch2/">进入 batch2（384 条新任务）</a></p>
       <label for="entry-name">姓名</label>
       <input id="entry-name" name="name" maxlength="32" placeholder="中文姓名或英文拼音" autocomplete="name" required autofocus>
       <p id="entry-origin-note" class="entry-notice" hidden>这是备用入口。旧标注还只在原浏览器中时，请先在<a href="https://chengye629.github.io/physfix-annotator/" target="_blank">原入口</a>导出 JSON，进入这里后导入备份。已同步的记录会自动恢复。</p>
@@ -19,7 +19,7 @@
   </section>
   <div id="annotation-app" hidden>
   <header>
-    <strong>视频标注</strong><div class="annotator-identity"><span>标注人</span><strong id="annotator-name"></strong><button type="button" id="change-person">切换</button></div><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
+    <strong>batch1</strong><a class="batch-link" href="./batch2/">batch2</a><div class="annotator-identity"><span>标注人</span><strong id="annotator-name"></strong><button type="button" id="change-person">切换</button></div><span id="progress"><span id="progress-text">已提交 0 / —</span><progress id="task-progress" max="606" value="0" aria-label="本组提交进度"></progress></span>
     <div class="header-actions"><button id="sync-button" type="button">读取云端…</button><button id="examples-button">管理员标注情况</button><button id="guide-button">标注守则</button><button id="export-button">导出 JSON</button><button id="restore-button">导入备份</button><button id="quality-button" hidden>审核统计</button><button id="admin-review-button" hidden>管理员复核</button><button id="team-progress-button" hidden>全员进度</button><button id="manage-button" hidden>管理</button><button id="merge-button" hidden>汇总</button></div>
   </header>
   <div class="layout">

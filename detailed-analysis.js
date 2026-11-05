@@ -1,4 +1,4 @@
-import {videoMetadata} from './video-metadata.js?v=19-quality';
+import {videoMetadata} from './video-metadata.js?v=23-batches';
 export function buildDetailedAnalysis(data,tasks){
  const metadata=new Map(tasks.map(t=>[t.record_id,t])),index=data.annotation_index||[],judged=new Map(data.judgments.map(j=>[j.record_id,j])),latest=new Map();
  for(const a of index){const old=latest.get(a.record_id);if(!old||(a.status==='submitted'&&old.status!=='submitted')||(a.status===old.status&&(a.saved_at||'')>(old.saved_at||'')))latest.set(a.record_id,a);}

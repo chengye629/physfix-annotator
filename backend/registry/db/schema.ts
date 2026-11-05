@@ -57,3 +57,10 @@ export const adminReviewHistory=sqliteTable('admin_review_history',{
  payload:text('payload').notNull(),
  createdAt:text('created_at').notNull()
 });
+
+export const batch2Annotations=sqliteTable('batch2_annotations',{
+ recordKey:text('record_key').primaryKey(),annotatorId:text('annotator_id').notNull(),annotatorName:text('annotator_name').notNull(),recordId:text('record_id').notNull(),payload:text('payload').notNull(),contentHash:text('content_hash').notNull(),version:integer('version').notNull(),savedAt:text('saved_at').notNull()
+},table=>[uniqueIndex('batch2_annotation_owner_record').on(table.annotatorId,table.recordId)]);
+export const batch2AnnotationHistory=sqliteTable('batch2_annotation_history',{
+ eventId:text('event_id').primaryKey(),recordKey:text('record_key').notNull(),annotatorId:text('annotator_id').notNull(),payload:text('payload').notNull(),createdAt:text('created_at').notNull()
+});

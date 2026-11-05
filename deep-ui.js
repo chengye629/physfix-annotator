@@ -1,5 +1,5 @@
-import {buildDeepInsights,PHYSICS_TAGS} from './deep-insights.js?v=22-deep';
-import {escapeHTML as h} from './core.js?v=12-cloud';
+import {buildDeepInsights,PHYSICS_TAGS} from './deep-insights.js?v=23-batches';
+import {escapeHTML as h} from './core.js?v=23-batches';
 const $=s=>document.querySelector(s),pct=n=>n==null?'—':(100*n).toFixed(1)+'%',colors={phyground:'#8066d5',physion_eval:'#4563cf',robojudge:'#208877',videophy2:'#bc791c'};let data,tasks,analysis,selected=[];
 export function mountDeepInsights(d,t){if(!t.length||!d.physics_evidence)return;data=d;tasks=t;const el=$('#deep-dataset'),value=el.value,sources=new Map(t.map(x=>[x.record_id.split('::')[0],x.record_id.split('::')[0]]));el.innerHTML='<option value="">全部数据集</option>'+[...sources].map(([k])=>`<option value="${h(k)}">${h({phyground:'PhyGround',physion_eval:'Physion',robojudge:'RoboJudge',videophy2:'VideoPhy2'}[k]||k)}</option>`).join('');el.value=value;render();}
 function render(){if(!data)return;analysis=buildDeepInsights(data,tasks,{dataset:$('#deep-dataset').value,includeAI:$('#deep-ai').checked,includePending:$('#deep-pending').checked,minN:Number($('#deep-min').value)});const a=analysis,top=[...a.scenario_mix].sort((x,y)=>(y.after_share-y.before_share)-(x.after_share-x.before_share))[0];

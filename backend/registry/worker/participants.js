@@ -9,7 +9,7 @@ const rows=[
  ['陈广宇','Chen Guangyu','Guangyu Chen','陈广宁','Chen Guangning','Guangning Chen'],
  ['林炬乙','Lin Juyi','Juyi Lin'],
  ['刘皓天','Liu Haotian','Haotian Liu'],
- ['Shihua','Shi Hua']
+ ['杨晓萌','Yang Xiaomeng','Xiaomeng Yang','Shihua','Shi Hua']
 ];
 export const nameKey=value=>String(value??'').normalize('NFKC').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('en-US').replace(/[\s._'’\-]/g,'');
 export const PARTICIPANTS=Object.freeze(rows.map(([name,...aliases],index)=>Object.freeze({name,aliases:Object.freeze([name,...aliases]),person:index+1,role:['叶程','马思远','林炬乙'].includes(name)?'admin':'member'})));
