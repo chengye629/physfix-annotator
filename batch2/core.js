@@ -1,8 +1,8 @@
-import {classifyApproval,OUTCOMES,outcome} from './approval.js?v=12-cloud';
+import {classifyApproval,OUTCOMES,outcome} from './approval.js?v=24-batch2';
 export {OUTCOMES,outcome};
-import {normalizeAssignment} from './assignments.js?v=12-cloud';
-import {normalizePlayback} from './playback.js?v=12-cloud';
-import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=12-cloud';
+import {normalizeAssignment} from './assignments.js?v=24-batch2';
+import {normalizePlayback} from './playback.js?v=24-batch2';
+import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=24-batch2';
 export {DATASET};
 export const SCHEMA_VERSION=2;
 export const HF_BASE='https://huggingface.co/datasets/HuggingFriends/PhysFixBench/resolve/'+HF_REVISION+'/videos/';
@@ -17,7 +17,7 @@ export function parseTimestamp(value){const clean=String(value??'').trim().repla
 export function playbackRange(timestamp,duration){const t=parseTimestamp(timestamp);if(!t||!Number.isFinite(duration)||duration<=0||t.end>duration+0.15||t.start>=duration)return null;return t.point?{start:Math.max(0,t.start-0.5),end:Math.min(duration,t.end+0.75)}:{start:t.start,end:Math.min(duration,t.end)};}
 export function seedIssues(task){
   const prefix=/^第?\s*(\d+(?:\.\d+)?)\s*s?\s*(?:([–—−~\-至])\s*(\d+(?:\.\d+)?)\s*s?|s)?\s*(?:左右)?\s*[：:]\s*/i;
-  const issues=(task.fix_problems||[]).map((problem,i)=>{const m=problem.match(prefix);return {timestamp:m?(m[3]?`${m[1]}–${m[3]}`:m[1]):'',problem:m?problem.slice(m[0].length):problem,expected:task.fix_expected?.[i]||''};});return issues.length?issues:[emptyIssue()];
+  const issues=(task.fix_problems||[]).map((problem,i)=>{const m=problem.match(prefix);return {timestamp:m?(m[3]&&Number(m[1])!==Number(m[3])?`${m[1]}–${m[3]}`:m[1]):'',problem:m?problem.slice(m[0].length):problem,expected:task.fix_expected?.[i]||''};});return issues.length?issues:[emptyIssue()];
 }
 export function createDraft(recordId,task){return {record_id:recordId,status:'draft',verdict:'',issues:task?seedIssues(task):[emptyIssue()],keep:task?.fix_keep||'',duration:null,revision:0,updated_at:new Date().toISOString()};}
 export function buildPrompt(a){const issues=a.issues||[];return `【存在的问题】\n${issues.map((v,i)=>`${i+1}. 第${v.timestamp}s：${v.problem}`).join('\n')}\n\n【应修改为】\n${issues.map((v,i)=>`${i+1}. ${v.expected}`).join('\n')}\n\n请在保持${a.keep||'其余正常内容'}不变的前提下，修正上述物理问题并重新生成视频。`;}

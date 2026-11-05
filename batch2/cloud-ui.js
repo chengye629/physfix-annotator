@@ -1,9 +1,9 @@
-import {escapeHTML as h,seedIssues,OUTCOMES,outcome,makeExport} from './core.js?v=12-cloud';
-import {resolveCloudConflict,cloudMetadata} from './cloud-sync.js?v=12-cloud';
-import {VideoDelivery} from './video-delivery.js?v=12-cloud';
-import {SegmentPlayer} from './segment-player.js?v=12-cloud';
-import {playbackAssessment} from './playback.js?v=12-cloud';
-import {buildTeamProgress} from './team-progress.js?v=17-progress';
+import {escapeHTML as h,seedIssues,OUTCOMES,outcome,makeExport} from './core.js?v=24-batch2';
+import {resolveCloudConflict,cloudMetadata} from './cloud-sync.js?v=24-batch2';
+import {VideoDelivery} from './video-delivery.js?v=24-batch2';
+import {SegmentPlayer} from './segment-player.js?v=24-batch2';
+import {playbackAssessment} from './playback.js?v=24-batch2';
+import {buildTeamProgress} from './team-progress.js?v=24-batch2';
 const $=selector=>document.querySelector(selector);
 const cardHTML=card=>'<article class="sample-card" tabindex="0" data-time="'+h(card.timestamp)+'"><strong>'+h(card.timestamp)+' 秒</strong><p><b>物理问题</b><br>'+h(card.problem)+'</p><p><b>修改后应有的正确状态</b><br>'+h(card.expected)+'</p></article>';
 const submittedLabel=a=>OUTCOMES[outcome(a)]||'草稿';

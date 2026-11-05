@@ -1,4 +1,4 @@
-import {participantFor} from './participants.js?v=12-cloud';
+import {participantFor} from './participants.js?v=24-batch2';
 export const ACTIVE_WORKSPACE_KEY='physfix.workspace.batch2.v1';
 const PROFILE_PREFIX='physfix.person.batch2.v1.';
 export function normalizeName(value){

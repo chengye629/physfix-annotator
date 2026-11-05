@@ -1,6 +1,6 @@
-import {mergeExports,outcome} from './core.js?v=12-cloud';
-import {screenPlaybackExports} from './screening.js?v=12-cloud';
-import {GROUP_SIZE,sourceOf} from './dataset-config.js?v=12-cloud';
+import {mergeExports,outcome} from './core.js?v=24-batch2';
+import {screenPlaybackExports} from './screening.js?v=24-batch2';
+import {GROUP_SIZE,sourceOf} from './dataset-config.js?v=24-batch2';
 
 export function annotationStage(annotation){
   if(annotation?.status==='submitted')return annotation.verdict;

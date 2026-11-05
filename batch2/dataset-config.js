@@ -1,7 +1,7 @@
 export const DATASET='physfixbench-batch2';
 export const LEGACY_DATASETS=[];
-export const DATASET_REVISION='31d3ca543b1a586d48dd9e646c82f70dde63a746';
-export const HF_REVISION='b1c24dfbe30229941d192abc52b99c6fd2d28c81';
+export const DATASET_REVISION='ce67583873c46ffd6cd679edea9b22b60683b1ec';
+export const HF_REVISION='ce67583873c46ffd6cd679edea9b22b60683b1ec';
 export const TASK_COUNT=384;
 export const GROUP_SIZE=50;
 export const SOURCE_LABELS={'physicsiq':'Physics-IQ','mme-cof-pro':'MME-COF',physion_eval:'Physion',robojudge:'RoboJudge',phyground:'PhyGround',videophy2:'VideoPhy2'};

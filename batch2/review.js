@@ -1,9 +1,9 @@
-import {RegistryClient} from './registry-client.js?v=12-cloud';
-import {REGISTRY_API} from './registry-config.js?v=12-cloud';
-import {escapeHTML as h,shortId,emptyIssue,validateAnnotation} from './core.js?v=12-cloud';
-import {compareApproval,stableStringify} from './approval.js?v=12-cloud';
-import {VideoDelivery} from './video-delivery.js?v=12-cloud';
-import {SegmentPlayer} from './segment-player.js?v=12-cloud';
+import {RegistryClient} from './registry-client.js?v=24-batch2';
+import {REGISTRY_API} from './registry-config.js?v=24-batch2';
+import {escapeHTML as h,shortId,emptyIssue,validateAnnotation} from './core.js?v=24-batch2';
+import {compareApproval,stableStringify} from './approval.js?v=24-batch2';
+import {VideoDelivery} from './video-delivery.js?v=24-batch2';
+import {SegmentPlayer} from './segment-player.js?v=24-batch2';
 const $=s=>document.querySelector(s),registry=new RegistryClient(REGISTRY_API);
 const labels={pass:'确认通过',pass_modified:'修改后通过',reject_no_clear_issue:'拒绝：无明确问题',reject_poor_quality:'拒绝：质量差'};
 let tasks=[],selected=null,identity=null,campaign=null,local={},versions={},saving=null,timer=null,ready=false;
