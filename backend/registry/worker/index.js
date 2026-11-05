@@ -1,3 +1,4 @@
+import {PHYSICS_EVIDENCE} from './physics-evidence.js';
 import {HISTORICAL_REVIEWS} from './human-reviews.js';
 import {buildQualityStatistics} from './quality-metrics.js';
 import {REVIEW_CAMPAIGN,REVIEW_TASKS} from './review-campaign.js';
@@ -68,7 +69,11 @@ async function handle(request,env){
   await authorize(request,env,true);
   const annotations=(await env.DB.prepare('SELECT * FROM annotations').all()).results.map(cloudRow);
   const reviews=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(REVIEW_CAMPAIGN.id).all()).results;
-  return {data:buildQualityStatistics(annotations,HISTORICAL_REVIEWS,REVIEW_TASKS,reviews,PARTICIPANTS.map(p=>p.name))};
+  const statistics=buildQualityStatistics(annotations,HISTORICAL_REVIEWS,REVIEW_TASKS,reviews,PARTICIPANTS.map(p=>p.name));
+  const physics_evidence={...PHYSICS_EVIDENCE};
+  for(const row of reviews){const a=JSON.parse(row.payload);if(a.status==='submitted'&&!physics_evidence[a.record_id])physics_evidence[a.record_id]={issues:a.issues,pending_issues:[],note:a.note||'',basis:'admin_review_cards'};}
+  for(const t of REVIEW_TASKS)if(!physics_evidence[t.record_id])physics_evidence[t.record_id]={issues:t.snapshot_annotation.issues,pending_issues:[],basis:'annotation_cards'};
+  return {data:{...statistics,physics_evidence}};
  }
  if(path==='/api/lease'&&request.method==='GET'){
   const row=await authorize(request,env);
