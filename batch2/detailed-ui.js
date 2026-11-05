@@ -1,6 +1,6 @@
-import {buildDetailedAnalysis} from './detailed-analysis.js?v=24-batch2';
-import {groupAuditBySource} from './source-statistics.js?v=24-batch2';
-import {escapeHTML as h} from './core.js?v=24-batch2';
+import {buildDetailedAnalysis} from './detailed-analysis.js?v=26-codecs';
+import {groupAuditBySource} from './source-statistics.js?v=26-codecs';
+import {escapeHTML as h} from './core.js?v=26-codecs';
 const $=s=>document.querySelector(s),pct=n=>n==null?'—':(100*n).toFixed(1)+'%';let report,source,data;
 const labels={pass:'确认通过',reject:'审核拒绝',edit:'待改卡片',unsure:'待定',stale:'待重审',unreviewed:'未复核'};
 function bar(label,n,total,color){return `<div class="analysis-bar"><span>${h(label)}</span><div><i style="width:${total?Math.min(100,n/total*100):0}%;background:${color}"></i></div><b>${n}</b></div>`;}

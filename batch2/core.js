@@ -1,8 +1,8 @@
-import {classifyApproval,OUTCOMES,outcome} from './approval.js?v=24-batch2';
+import {classifyApproval,OUTCOMES,outcome} from './approval.js?v=26-codecs';
 export {OUTCOMES,outcome};
-import {normalizeAssignment} from './assignments.js?v=24-batch2';
-import {normalizePlayback} from './playback.js?v=24-batch2';
-import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=24-batch2';
+import {normalizeAssignment} from './assignments.js?v=26-codecs';
+import {normalizePlayback} from './playback.js?v=26-codecs';
+import {DATASET,LEGACY_DATASETS,DATASET_REVISION,HF_REVISION} from './dataset-config.js?v=26-codecs';
 export {DATASET};
 export const SCHEMA_VERSION=2;
 export const HF_BASE='https://huggingface.co/datasets/HuggingFriends/PhysFixBench/resolve/'+HF_REVISION+'/videos/';

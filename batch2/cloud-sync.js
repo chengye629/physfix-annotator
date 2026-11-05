@@ -1,4 +1,4 @@
-import {stableStringify} from './approval.js?v=24-batch2';
+import {stableStringify} from './approval.js?v=26-codecs';
 export const fingerprint=annotation=>stableStringify(annotation);
 export const hasProgress=annotation=>annotation?.status==='submitted'||(annotation?.revision||0)>0||(annotation?.watch?.play_count||0)>0||!!annotation?.legacy;
 export function cloudMetadata(state){

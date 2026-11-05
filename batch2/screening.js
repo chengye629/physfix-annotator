@@ -1,5 +1,5 @@
-import {selectLatestAnnotations} from './core.js?v=24-batch2';
-import {assessSubmittedPlayback} from './playback.js?v=24-batch2';
+import {selectLatestAnnotations} from './core.js?v=26-codecs';
+import {assessSubmittedPlayback} from './playback.js?v=26-codecs';
 
 // Deduplicate first: a later invalid submission must withdraw an earlier valid vote.
 export function screenPlaybackExports(exports){

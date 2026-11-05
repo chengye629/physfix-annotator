@@ -1,18 +1,18 @@
-import {compareApproval} from './approval.js?v=24-batch2';
-import {CloudSync} from './cloud-sync.js?v=24-batch2';
-import {mountCloudUI} from './cloud-ui.js?v=24-batch2';
-import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=24-batch2';
-import {VideoDelivery} from './video-delivery.js?v=24-batch2';
-import {loadDataset} from './dataset-loader.js?v=24-batch2';
-import {SegmentPlayer} from './segment-player.js?v=24-batch2';
-import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=24-batch2';
-import {PlaybackTracker,playbackAssessment} from './playback.js?v=24-batch2';
-import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=24-batch2';
-import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=24-batch2';
-import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=24-batch2';
-import {participantFor} from './participants.js?v=24-batch2';
-import {RegistryClient,RegistryError} from './registry-client.js?v=24-batch2';
-import {REGISTRY_API} from './registry-config.js?v=24-batch2';
+import {compareApproval} from './approval.js?v=26-codecs';
+import {CloudSync} from './cloud-sync.js?v=26-codecs';
+import {mountCloudUI} from './cloud-ui.js?v=26-codecs';
+import {DATASET,SCHEMA_VERSION,VERDICTS,OUTCOMES,outcome,shortId,escapeHTML as h,emptyIssue,seedIssues,createDraft,validateAnnotation,makeExport,normalizeExport,upgradeAnnotation,mergeExports} from './core.js?v=26-codecs';
+import {VideoDelivery} from './video-delivery.js?v=26-codecs';
+import {loadDataset} from './dataset-loader.js?v=26-codecs';
+import {SegmentPlayer} from './segment-player.js?v=26-codecs';
+import {annotationStage,matchesTaskStatus,groupTasks,resolveStartTask,groupLink,buildReviewSummary,filterReviewRows} from './workflow.js?v=26-codecs';
+import {PlaybackTracker,playbackAssessment} from './playback.js?v=26-codecs';
+import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=26-codecs';
+import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=26-codecs';
+import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=26-codecs';
+import {participantFor} from './participants.js?v=26-codecs';
+import {RegistryClient,RegistryError} from './registry-client.js?v=26-codecs';
+import {REGISTRY_API} from './registry-config.js?v=26-codecs';
 const registry=new RegistryClient(REGISTRY_API);
 let cloud=null,cloudUI=null;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -188,7 +188,7 @@ window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)toast('其他标签
 cloud=new CloudSync(registry,{getState:()=>state,save:()=>persist(false),onStatus:value=>cloudUI?.status(value),normalize:a=>{const task=tasks.find(t=>t.record_id===a.record_id);return upgradeAnnotation(a,task);},isUntouched:a=>{const task=tasks.find(t=>t.record_id===a.record_id);return a.status==='draft'&&!a.revision&&!a.legacy&&!a.watch?.play_count&&task&&compareApproval(a,seedIssues(task))==='direct';}});
 cloudUI=mountCloudUI({registry,cloud,getState:()=>state,save:()=>persist(),refresh:()=>showTask(currentIndex),beforeResolve:()=>watch.detach(),getTasks:()=>tasks,download});
 async function init(){try{
-  const manifestRequest=fetch('./data/video-manifest.json?v=12-cloud',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
+  const manifestRequest=fetch('./data/video-manifest.json?v=26-codecs',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
   tasks=(await loadDataset()).trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);if(tasks.length!==TASK_COUNT||new Set(tasks.map(t=>t.record_id)).size!==TASK_COUNT)throw new Error('数据索引不完整。');
   for(const [id,a] of Object.entries(state.annotations)){const task=tasks.find(t=>t.record_id===id);if(task)state.annotations[id]=upgradeAnnotation(a,task,legacyLocal);}
   const manifest=await manifestRequest;

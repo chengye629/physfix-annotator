@@ -1,4 +1,4 @@
-import {escapeHTML as h,videoUrl} from './core.js?v=24-batch2';
+import {escapeHTML as h,videoUrl} from './core.js?v=26-codecs';
 const examples=[
  {id:'physion_eval::full::T1_01334',pass:true,title:'冰块融化异常',reason:'融水增加时冰块反而变大，物理问题明确，修复目标清楚。'},
  {id:'physion_eval::full::T1_07464',pass:true,title:'纸张自行裂开',reason:'剪刀停下后纸张仍自行裂开，异常集中，可以明确描述修复要求。'},

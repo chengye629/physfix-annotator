@@ -1,4 +1,4 @@
-import { videoUrl } from './core.js?v=24-batch2';
+import { videoUrl } from './core.js?v=26-codecs';
 
 // Keep only a few unmodified video files in memory. Annotation data uses its
 // existing, separate localStorage key and is never removed by this cache.
@@ -28,6 +28,14 @@ export class VideoDelivery {
 
   targets(id) {
     const mirror = this.manifest[id];
+    // HEVC originals are retained for provenance. Use the AVC playback copy
+    // in every line mode so a saved "original" preference cannot select a
+    // codec that this browser cannot decode.
+    if (mirror?.playback_codec === 'h264') {
+      const url = new URL(mirror.file, this.baseURL);
+      url.searchParams.set('v', mirror.sha256.slice(0,12));
+      return [{url:url.href,source:'网站线路'}];
+    }
     const targets = [];
     if (mirror?.file && this.mode !== 'original') {
       const url = new URL(mirror.file, this.baseURL);
