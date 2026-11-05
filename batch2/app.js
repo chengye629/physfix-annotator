@@ -39,6 +39,7 @@ delivery.mode=['auto','site','original'].includes(state.video_source)?state.vide
 const segment=new SegmentPlayer(video,{onActiveChange:index=>{$$('.issue').forEach(el=>el.classList.toggle('active',index!==null&&Number(el.dataset.issue)===index));},onError:toast});
 function draftStatus(){const a=active(),stage=annotationStage(a);document.getElementById('draft-status').dataset.status=a?.status||'draft';$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[outcome(a)]||''}`:stage==='draft'?'草稿已保存':'预标注';}
 function renderGroups(){
+  for(const link of document.querySelectorAll('[data-batch1-link]'))link.hidden=!isAdmin();
   $('#group-filter').hidden=person!==null;$('#merge-button').hidden=!isAdmin();$('#manage-button').hidden=!isAdmin();$('#team-progress-button').hidden=!isAdmin();$('#admin-review-button').hidden=true;$('#quality-button').hidden=!isAdmin();$('#copy-group-link').textContent='复制入口链接';
   if(person!==null){$('#group-filter').innerHTML='<option value="all">我的任务</option>';$('#group-filter').value='all';return;}
   const source=state.source_filter,all=groupTasks(tasks,'all',source);
@@ -129,7 +130,7 @@ function refreshScope(){
 }
 function backToEntry(){
  cloud.stop();cloudUI?.stop();segment.stop();watch.detach();video.pause();delivery.dispose();video.removeAttribute('src');video.load();persist();entered=false;
- $('#annotation-app').hidden=true;$('#entry').hidden=false;$('#entry-name').value=state.annotator.name;$('#entry-name').focus();$('#entry-name').select();
+ for(const link of document.querySelectorAll('[data-batch1-link]'))link.hidden=true;$('#annotation-app').hidden=true;$('#entry').hidden=false;$('#entry-name').value=state.annotator.name;$('#entry-name').focus();$('#entry-name').select();
 }
 $('#entry-name').value=state.annotator.name;
 $('#entry-origin-note').hidden=true;
@@ -195,6 +196,7 @@ async function init(){try{
   const videoManifest={videos:Object.fromEntries(tasks.map(t=>[t.record_id,{...manifest?.videos?.[t.record_id],upstream_file:manifest?.videos?.[t.record_id]?.upstream_file||t.video_file}]))};delivery.setManifest(videoManifest);cloudUI.setManifest(videoManifest);
   $('#source-filter').innerHTML='<option value="all">全部来源</option>'+Object.entries(SOURCE_LABELS).map(([value,name])=>`<option value="${value}">${name}（${tasks.filter(t=>sourceOf(t)===value).length}）</option>`).join('');
   ready=true;$('#enter-button').disabled=false;
+  const incoming=new URLSearchParams(location.search).get('name');if(participantFor(incoming)){$('#entry-name').value=participantFor(incoming).name;void enterAnnotation(participantFor(incoming).name);}
 }catch(error){$('#entry-error').hidden=false;$('#entry-error').textContent=`加载失败：${error.message}`;}}
 init();
 

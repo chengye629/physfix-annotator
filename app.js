@@ -101,7 +101,9 @@ function renderMerge(){
 }
 function exportMerged(onlyPassed=false){download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:onlyPassed?'consensus_problem_set':'merged_review',exported_at:now(),minimum_reviewers:reviewSummary.minimum,detail_review_required:true,coverage:reviewSummary.coverage,playback_screening:reviewSummary.screening,annotators:reviewSummary.annotators,samples:onlyPassed?mergedRows.filter(r=>r.eligible):mergedRows},onlyPassed?'physfix_consensus':'physfix_merged');}
 
+function enterBatch2(name){const url=new URL('./batch2/',location.href);url.searchParams.set('name',name);location.replace(url.href);}
 async function enterAnnotation(value){
+ if(participantFor(value)?.role==='member'){enterBatch2(participantFor(value).name);return;}
  if(!ready||entering)return;entering=true;$('#enter-button').disabled=true;$('#enter-button').textContent='正在领取…';
  try{
   const input=normalizeName(value),name=participantFor(input)?.name??input,store={getItem:key=>{try{return localStorage.getItem(key);}catch{return null;}},setItem:(key,data)=>localStorage.setItem(key,data),keys:()=>{try{return Object.keys(localStorage);}catch{return [];}}};
@@ -181,13 +183,14 @@ $('#merge-export-screened').onclick=()=>download({schema_version:SCHEMA_VERSION,
 $('#minimum-reviews').onchange=renderMerge;$('#merge-filter').onchange=renderMerge;$('#merge-export').onclick=()=>exportMerged();$('#merge-export-valid').onclick=()=>exportMerged(true);
 $('#merge-export-review').onclick=()=>download({schema_version:SCHEMA_VERSION,dataset:DATASET,export_type:'review_queue',exported_at:now(),minimum_reviewers:reviewSummary.minimum,coverage:reviewSummary.coverage,playback_screening:reviewSummary.screening,samples:reviewSummary.followup},'physfix_review_queue');
 $('#merge-body').onclick=e=>{const button=e.target.closest('[data-review-id]');if(!button)return;const index=tasks.findIndex(t=>t.record_id===button.dataset.reviewId);if(index<0)return;if(person!==null&&!ownTasks().includes(tasks[index])){toast('该视频不在当前任务中。');return;}if(!selectedTasks().includes(tasks[index])){state.group='all';state.source_filter='all';$('#source-filter').value='all';renderGroups();}$('#merge-dialog').close();showTask(index);};
-window.addEventListener('pagehide',()=>{watch.capture(true);persist(false);});
+window.addEventListener('pagehide',()=>{if(entered){watch.capture(true);persist(false);}});
 window.addEventListener('online',()=>{if(entered)void cloud.flush();});
 document.addEventListener('visibilitychange',()=>watch.capture(true));
 window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)toast('其他标签页修改了进度，请先导出当前内容。');});
 cloud=new CloudSync(registry,{getState:()=>state,save:()=>persist(false),onStatus:value=>cloudUI?.status(value),normalize:a=>{const task=tasks.find(t=>t.record_id===a.record_id);return upgradeAnnotation(a,task);},isUntouched:a=>{const task=tasks.find(t=>t.record_id===a.record_id);return a.status==='draft'&&!a.revision&&!a.legacy&&!a.watch?.play_count&&task&&compareApproval(a,seedIssues(task))==='direct';}});
 cloudUI=mountCloudUI({registry,cloud,getState:()=>state,save:()=>persist(),refresh:()=>showTask(currentIndex),beforeResolve:()=>watch.detach(),getTasks:()=>tasks,download});
 async function init(){try{
+  if(participantFor(state.annotator.name)?.role==='member'){enterBatch2(participantFor(state.annotator.name).name);return;}
   const manifestRequest=fetch('./data/video-manifest.json?v=12-cloud',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
   tasks=(await loadDataset()).trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);if(tasks.length!==TASK_COUNT||new Set(tasks.map(t=>t.record_id)).size!==TASK_COUNT)throw new Error('数据索引不完整。');
   for(const [id,a] of Object.entries(state.annotations)){const task=tasks.find(t=>t.record_id===id);if(task)state.annotations[id]=upgradeAnnotation(a,task,legacyLocal);}
