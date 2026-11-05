@@ -1,4 +1,4 @@
-import {mountDeepInsights} from './deep-ui.js?v=23-batches';
+import {mountDeepInsights} from './deep-ui.js?v=25-resolved';
 import {renderDetailedAnalysis,detailedExport} from './detailed-ui.js?v=23-batches';
 import {groupAuditBySource} from './source-statistics.js?v=23-batches';
 import {RegistryClient} from './registry-client.js?v=23-batches';
