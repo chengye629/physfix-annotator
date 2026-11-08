@@ -10,7 +10,7 @@ import {PlaybackTracker,playbackAssessment} from './playback.js?v=23-batches';
 import {TASK_COUNT,GROUP_SIZE,SOURCE_LABELS,sourceOf,taskLabel} from './dataset-config.js?v=23-batches';
 import {openNamedWorkspace,normalizeName,personalExportPrefix} from './annotator-entry.js?v=23-batches';
 import {ASSIGNMENT_PLAN,PARTICIPANT_COUNT,assignedTasks,assignmentLink,linkedAssignment,assignmentDetails,validPerson} from './assignments.js?v=23-batches';
-import {participantFor} from './participants.js?v=23-batches';
+import {participantFor} from './participants.js?v=28-shihua';
 import {RegistryClient,RegistryError} from './registry-client.js?v=23-batches';
 import {REGISTRY_API} from './registry-config.js?v=23-batches';
 const registry=new RegistryClient(REGISTRY_API);
@@ -103,6 +103,7 @@ function exportMerged(onlyPassed=false){download({schema_version:SCHEMA_VERSION,
 
 function enterBatch2(name){const url=new URL('./batch2/',location.href);url.searchParams.set('name',name);location.replace(url.href);}
 async function enterAnnotation(value){
+ if(/^shi\s*hua$/i.test(String(value).trim())){enterBatch2('Shihua');return;}
  if(participantFor(value)?.role==='member'){enterBatch2(participantFor(value).name);return;}
  if(!ready||entering)return;entering=true;$('#enter-button').disabled=true;$('#enter-button').textContent='正在领取…';
  try{
@@ -190,6 +191,7 @@ window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY)toast('其他标签
 cloud=new CloudSync(registry,{getState:()=>state,save:()=>persist(false),onStatus:value=>cloudUI?.status(value),normalize:a=>{const task=tasks.find(t=>t.record_id===a.record_id);return upgradeAnnotation(a,task);},isUntouched:a=>{const task=tasks.find(t=>t.record_id===a.record_id);return a.status==='draft'&&!a.revision&&!a.legacy&&!a.watch?.play_count&&task&&compareApproval(a,seedIssues(task))==='direct';}});
 cloudUI=mountCloudUI({registry,cloud,getState:()=>state,save:()=>persist(),refresh:()=>showTask(currentIndex),beforeResolve:()=>watch.detach(),getTasks:()=>tasks,download});
 async function init(){try{
+  if(/^shi\s*hua$/i.test(String(state.annotator.name).trim())){enterBatch2('Shihua');return;}
   if(participantFor(state.annotator.name)?.role==='member'){enterBatch2(participantFor(state.annotator.name).name);return;}
   const manifestRequest=fetch('./data/video-manifest.json?v=12-cloud',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
   tasks=(await loadDataset()).trim().split(/\r?\n/).filter(Boolean).map(JSON.parse);if(tasks.length!==TASK_COUNT||new Set(tasks.map(t=>t.record_id)).size!==TASK_COUNT)throw new Error('数据索引不完整。');

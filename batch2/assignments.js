@@ -1,7 +1,7 @@
-import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=26-codecs';
+import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=28-shihua';
 export {PARTICIPANT_COUNT,ASSIGNMENT_PLAN};
 export function validPerson(value){const number=Number(value);return /^\d+$/.test(String(value))&&Number.isInteger(number)&&number>=1&&number<=PARTICIPANT_COUNT?number:null;}
-export function assignedTasks(tasks,person=null){return person===null?tasks:tasks.filter((task,index)=>index%PARTICIPANT_COUNT===person-1);}
+export function assignedTasks(tasks,person=null){return person===null?tasks:tasks.filter((task,index)=>(task.batch2_assignee_slot??index%9+1)===person);}
 export function assignmentLink(base,person){const url=new URL(base);url.search='';url.hash='';if(person===null)url.searchParams.set('view','all');else{if(!validPerson(person))throw new Error('任务编号无效。');url.searchParams.set('person',String(person));}return url.href;}
 export function linkedAssignment(params){
   const person=validPerson(params.get('person'));

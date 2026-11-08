@@ -1,4 +1,4 @@
-import { videoUrl } from './core.js?v=26-codecs';
+import { videoUrl } from './core.js?v=28-shihua';
 
 // Keep only a few unmodified video files in memory. Annotation data uses its
 // existing, separate localStorage key and is never removed by this cache.

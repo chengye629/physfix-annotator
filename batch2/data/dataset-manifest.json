@@ -13,14 +13,15 @@
   },
   "per_person": [
     43,
-    43,
+    4,
     43,
     43,
     43,
     43,
     42,
     42,
-    42
+    42,
+    39
   ],
   "carryover_record_ids": [
     "physion_eval::full::T1_08673",
@@ -92,5 +93,50 @@
     "videophy2::test::vp2_1536_cogvideo"
   ],
   "upstream_revision": "ce67583873c46ffd6cd679edea9b22b60683b1ec",
-  "phyground_revision": "04c5f57a99305b5a0bcf270e553a281463e29eb7"
+  "phyground_revision": "04c5f57a99305b5a0bcf270e553a281463e29eb7",
+  "transfer_to_shihua": {
+    "from": "马思远",
+    "record_ids": [
+      "phyground::cosmos-predict2.5-14b::mechanics_87",
+      "phyground::cosmos-predict2.5-2b::collision_264",
+      "phyground::veo-3.1::0059_perspective-center_trimmed-duck-falls-in-box",
+      "phyground::veo-3.1::mechanics_466",
+      "phyground::wan2.2-ti2v-5b::collision_446",
+      "physicsiq::v1::0056",
+      "physion_eval::full::23a88771-35ea-5ee6-83ae-165393269b01",
+      "physion_eval::full::T1_00076",
+      "physion_eval::full::T1_00579",
+      "physion_eval::full::T1_00980",
+      "physion_eval::full::T1_01613",
+      "physion_eval::full::T1_02021",
+      "physion_eval::full::T1_02474",
+      "physion_eval::full::T1_03009",
+      "physion_eval::full::T1_03247",
+      "physion_eval::full::T1_03698",
+      "physion_eval::full::T1_03955",
+      "physion_eval::full::T1_04001",
+      "physion_eval::full::T1_04211",
+      "physion_eval::full::T1_04247",
+      "physion_eval::full::T1_05115",
+      "physion_eval::full::T1_05459",
+      "physion_eval::full::T1_05631",
+      "physion_eval::full::T1_05832",
+      "physion_eval::full::T1_06376",
+      "physion_eval::full::T1_07097",
+      "physion_eval::full::T1_07125",
+      "physion_eval::full::T1_07298",
+      "physion_eval::full::T1_07614",
+      "physion_eval::full::T1_08201",
+      "physion_eval::full::T1_08594",
+      "physion_eval::full::T1_08884",
+      "physion_eval::full::T1_08977",
+      "physion_eval::full::T1_09132",
+      "physion_eval::full::T1_09728",
+      "physion_eval::full::bb0a42bb-29e6-558d-ba40-7d774e6e315d",
+      "physion_eval::full::c4ea6bd2-b5df-5947-9ce7-7b63a8a56290",
+      "physion_eval::full::e2e435aa-b1f5-521f-b1f9-f0626132cea5",
+      "robojudge::test::data__droid__generated_data__wan22_ti2v5b_1280x704_f169_prefix__task_0080__episode_0001__1__task_0080_episode_0001"
+    ],
+    "completed_kept": 4
+  }
 }

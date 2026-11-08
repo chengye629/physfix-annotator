@@ -2,12 +2,12 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import worker,{PLAN} from '../worker/index.js';import {BATCH2_DATA} from '../worker/batch2-data.js';import {localDatabase} from './sqlite-adapter.mjs';
 function setup(){const DB=localDatabase();return {DB,async req(path,body,token){const r=await worker.fetch(new Request('https://registry.test'+path,{method:body?'POST':'GET',headers:token?{Authorization:'Bearer '+token}:{},...(body?{body:JSON.stringify(body)}:{})}),{DB,PRODUCTION:false});return {status:r.status,data:await r.json()};}};}
 const ann=t=>({record_id:t.record_id,status:'submitted',verdict:'pass',issues:structuredClone(t.issues),revision:1,updated_at:new Date().toISOString()});
-test('batch2 distributes 384 unique tasks, including 67 carryovers, to nine canonical names',async()=>{const api=setup();try{
+test('batch2 distributes 384 unique tasks, including 67 carryovers, with an independent Shihua identity',async()=>{const api=setup();try{
  assert.equal(BATCH2_DATA.tasks.length,384);assert.equal(new Set(BATCH2_DATA.tasks.map(t=>t.record_id)).size,384);assert.equal(BATCH2_DATA.carried_ids.length,67);
- assert.deepEqual(BATCH2_DATA.participants.map(p=>BATCH2_DATA.tasks.filter(t=>t.person===p.person).length),[43,43,43,43,43,43,42,42,42]);
+ assert.deepEqual(BATCH2_DATA.participants.map(p=>BATCH2_DATA.tasks.filter(t=>t.person===p.person).length),[43,4,43,43,43,43,42,42,42,39]);
  const yang=(await api.req('/api/batch2/claim',{name:'Yang Xiaomeng'})).data;assert.equal(yang.annotator.name,'杨晓萌');assert.equal(yang.person,9);assert.equal(yang.task_count,42);const again=(await api.req('/api/batch2/claim',{name:'杨晓萌'})).data;assert.equal(again.token,yang.token);assert.equal(again.annotator.id,yang.annotator.id);
  const parent=(await api.req('/api/claim',{name:'马思远'})).data,b2=(await api.req('/api/batch2/claim',{name:'Siyuan Ma'})).data;assert.equal(parent.annotator.id,b2.annotator.id);assert.notEqual(parent.token,b2.token);assert.equal((await api.req('/api/annotations',null,b2.token)).status,403);assert.equal((await api.req('/api/batch2/annotations',null,parent.token)).status,403);
- const claims=(await api.req('/api/batch2/admin/claims',null,b2.token)).data;assert.equal(claims.claims.length,9);assert.equal(claims.claims[8].display_name,'杨晓萌');
+ const claims=(await api.req('/api/batch2/admin/claims',null,b2.token)).data;assert.equal(claims.claims.length,10);assert.equal(claims.claims[8].display_name,'杨晓萌');
  }finally{api.DB.close();}});
 test('batch2 saves independently and resumes without changing batch1 rows, including carryover IDs',async()=>{const api=setup();try{
  const admin=(await api.req('/api/claim',{name:'叶程'})).data,b2=(await api.req('/api/batch2/claim',{name:'叶程'})).data,t=BATCH2_DATA.tasks.find(t=>BATCH2_DATA.carried_ids.includes(t.record_id));

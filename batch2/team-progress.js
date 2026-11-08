@@ -1,7 +1,7 @@
-import {PARTICIPANTS,participantFor} from './participants.js?v=26-codecs';
-import {assignedTasks} from './assignments.js?v=26-codecs';
-import {classifyApproval,outcome} from './approval.js?v=26-codecs';
-import {seedIssues} from './core.js?v=26-codecs';
+import {PARTICIPANTS,participantFor} from './participants.js?v=28-shihua';
+import {assignedTasks} from './assignments.js?v=28-shihua';
+import {classifyApproval,outcome} from './approval.js?v=28-shihua';
+import {seedIssues} from './core.js?v=28-shihua';
 
 // Read-only totals: current assignments and historical records are kept separate.
 export function buildTeamProgress(tasks,claims,records){

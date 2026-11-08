@@ -9,7 +9,7 @@
 ## 批次
 
 - batch1：保留已有标注、复核和统计；原 Shihua 未标的 67 条移入 batch2，另外八人的任务不变。
-- [batch2](https://chengye629.github.io/physfix-annotator/batch2/)：317 条新视频 + 67 条转入视频，共 384 条。前六人各 43 条，后三人各 42 条。中文、英文姓名均可进入固定任务。
+- [batch2](https://chengye629.github.io/physfix-annotator/batch2/)：317 条新视频 + 67 条转入视频，共 384 条。其他人分工保持不变；马思远保留已提交的 4 条，剩余 39 条转给新增独立账号 Shihua。杨晓萌仍为第 9 位、42 条，Shihua 为第 10 位。中文、英文姓名均可进入固定任务。
 - 两批使用独立的本机存储、后台标注表和导出数据集标识。原始视频编号保持不变。batch2 统计只包含第二批记录。
 
 下表任务数为 batch1；batch2 任务数按上面的分配。

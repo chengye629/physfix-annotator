@@ -252,13 +252,13 @@ async function adminReviewRoute(request,env,owner,url){
 
 async function batch2Route(request,env,url){
  const path=url.pathname.replace('/api/batch2','/api'),plan=BATCH2_DATA.plan,parts=BATCH2_DATA.participants;
- const memberFor=name=>participantFor(name),count=slot=>BATCH2_DATA.tasks.filter(t=>t.person===slot).length;
- const mapped2=(row,token=false)=>({plan,participants:9,person:row.slot,claim_id:row.claim_id,task_count:count(row.slot),annotator:{id:row.annotator_id,name:memberFor(row.display_name)?.name||row.display_name},role:memberFor(row.display_name)?.role||'member',...(token?{token:row.session_token}:{})});
+ const memberFor=name=>nameKey(name)==='shihua'?parts.find(p=>p.person===10):participantFor(name),count=slot=>BATCH2_DATA.tasks.filter(t=>t.person===slot).length;
+ const mapped2=(row,token=false)=>({plan,participants:parts.length,person:row.slot,claim_id:row.claim_id,task_count:count(row.slot),annotator:{id:row.annotator_id,name:memberFor(row.display_name)?.name||row.display_name},role:memberFor(row.display_name)?.role||'member',...(token?{token:row.session_token}:{})});
  if(path==='/api/claim'&&request.method==='POST'){
   const input=await body(request),member=memberFor(normalizeName(input.name));if(!member)throw new ApiError(400,'未在名单中找到这个姓名。');
   let row=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND name_key=?2 AND released_at IS NULL').bind(plan,nameKey(member.name)).first();
   if(!row){
-   const parent=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND slot=?2 AND released_at IS NULL').bind(PLAN,member.person).first();
+   const parent=member.person<=9?await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND slot=?2 AND released_at IS NULL').bind(PLAN,member.person).first():null;
    const id=parent?.annotator_id||crypto.randomUUID();
    await env.DB.prepare('INSERT OR IGNORE INTO registrations(claim_id,plan,slot,name_key,session_token,role,display_name,annotator_id,created_at) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)').bind(crypto.randomUUID(),plan,member.person,nameKey(member.name),crypto.randomUUID()+crypto.randomUUID(),member.role,member.name,id,new Date().toISOString()).run();
    row=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND name_key=?2 AND released_at IS NULL').bind(plan,nameKey(member.name)).first();
@@ -290,7 +290,7 @@ async function batch2Route(request,env,url){
  }
  if(path==='/api/admin/claims'&&request.method==='GET'){
   const rows=(await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND released_at IS NULL').bind(plan).all()).results;
-  return {plan,participants:9,claims:parts.map(p=>{const row=rows.find(r=>r.slot===p.person);return {claim_id:row?.claim_id||null,slot:p.person,display_name:p.name,annotator_id:row?.annotator_id||null,created_at:row?.created_at||null,role:p.role,task_count:count(p.person)};})};
+  return {plan,participants:parts.length,claims:parts.map(p=>{const row=rows.find(r=>r.slot===p.person);return {claim_id:row?.claim_id||null,slot:p.person,display_name:p.name,annotator_id:row?.annotator_id||null,created_at:row?.created_at||null,role:p.role,task_count:count(p.person)};})};
  }
  if(path==='/api/admin/annotations'&&request.method==='GET'){
   const cursor=Number(url.searchParams.get('cursor')||0),limit=Math.min(100,Number(url.searchParams.get('limit')||50));if(!Number.isSafeInteger(cursor)||cursor<0||!Number.isSafeInteger(limit)||limit<1)throw new ApiError(400,'分页参数无效。');
@@ -303,7 +303,7 @@ async function batch2Route(request,env,url){
   let rows=(await env.DB.prepare('SELECT * FROM batch2_annotations ORDER BY saved_at DESC').all()).results.filter(r=>memberFor(r.annotator_name)?.role==='admin'&&JSON.parse(r.payload).status==='submitted');const admins=parts.filter(p=>p.role==='admin').map(p=>({name:p.name,total:rows.filter(r=>r.annotator_name===p.name).length,pass_direct:rows.filter(r=>r.annotator_name===p.name&&outcome(JSON.parse(r.payload))==='pass').length,pass_modified:rows.filter(r=>r.annotator_name===p.name&&outcome(JSON.parse(r.payload))==='pass_modified').length}));
   const name=url.searchParams.get('name'),decision=url.searchParams.get('outcome');if(name)rows=rows.filter(r=>r.annotator_name===name);if(decision)rows=rows.filter(r=>outcome(JSON.parse(r.payload))===decision);const cursor=Number(url.searchParams.get('cursor')||0);if(!Number.isSafeInteger(cursor)||cursor<0)throw new ApiError(400,'分页参数无效。');return {admins,total:rows.length,records:rows.slice(cursor,cursor+50).map(cloudRow),next_cursor:cursor+50<rows.length?cursor+50:null};
  }
- if(path==='/api/admin/release'||path==='/api/admin/reassign')throw new ApiError(409,'batch2 使用固定九人分配，无需重置或转交。');
+ if(path==='/api/admin/release'||path==='/api/admin/reassign')throw new ApiError(409,'batch2 使用固定任务分配，无需重置或转交。');
  if(path==='/api/admin/reviews'||path==='/api/admin/reviews/save')throw new ApiError(404,'batch2 尚未开始管理员复核。');
  throw new ApiError(404,'batch2 接口不存在。');
 }

@@ -1,4 +1,4 @@
-import {parseTimestamp,playbackRange} from './core.js?v=26-codecs';
+import {parseTimestamp,playbackRange} from './core.js?v=28-shihua';
 
 export class SegmentPlayer {
   constructor(video,{onActiveChange=()=>{},onError=()=>{}}={}) {

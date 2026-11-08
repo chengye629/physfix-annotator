@@ -1,4 +1,4 @@
-import {participantFor} from './participants.js?v=26-codecs';
+import {participantFor} from './participants.js?v=28-shihua';
 export const ACTIVE_WORKSPACE_KEY='physfix.workspace.batch2.v1';
 const PROFILE_PREFIX='physfix.person.batch2.v1.';
 export function normalizeName(value){
