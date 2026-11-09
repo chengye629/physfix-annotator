@@ -1,5 +1,6 @@
 import {readFile,readdir,writeFile} from 'node:fs/promises';
 import {resolve,extname} from 'node:path';
+await import('./bundle-browser.mjs');
 const front=resolve(process.argv[2]||'../physfix-annotator');
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8','.jsonl':'application/x-ndjson; charset=utf-8','.gz':'application/gzip'};
 const files=(await readdir(front)).filter(name=>/\.(html|js|css|svg)$/.test(name)).sort();
