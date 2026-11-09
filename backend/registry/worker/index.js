@@ -253,7 +253,8 @@ async function adminReviewRoute(request,env,owner,url){
 async function batch2Route(request,env,url){
  const path=url.pathname.replace('/api/batch2','/api'),plan=BATCH2_DATA.plan,parts=BATCH2_DATA.participants;
  const memberFor=name=>nameKey(name)==='shihua'?parts.find(p=>p.person===10):participantFor(name),count=slot=>BATCH2_DATA.tasks.filter(t=>t.person===slot).length;
- const mapped2=(row,token=false)=>({plan,participants:parts.length,person:row.slot,claim_id:row.claim_id,task_count:count(row.slot),annotator:{id:row.annotator_id,name:memberFor(row.display_name)?.name||row.display_name},role:memberFor(row.display_name)?.role||'member',...(token?{token:row.session_token}:{})});
+ const canonicalOwner=row=>parts.find(p=>p.person===row.slot);
+ const mapped2=(row,token=false)=>({plan,participants:parts.length,person:row.slot,claim_id:row.claim_id,task_count:count(row.slot),annotator:{id:row.annotator_id,name:canonicalOwner(row)?.name||row.display_name},role:canonicalOwner(row)?.role||'member',...(token?{token:row.session_token}:{})});
  if(path==='/api/claim'&&request.method==='POST'){
   const input=await body(request),member=memberFor(normalizeName(input.name));if(!member)throw new ApiError(400,'未在名单中找到这个姓名。');
   let row=await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND name_key=?2 AND released_at IS NULL').bind(plan,nameKey(member.name)).first();
@@ -268,7 +269,7 @@ async function batch2Route(request,env,url){
   return mapped2(row,true);
  }
  const token=request.headers.get('Authorization')?.replace(/^Bearer /,'')||'',owner=token?await env.DB.prepare('SELECT * FROM registrations WHERE plan=?1 AND session_token=?2 AND released_at IS NULL').bind(plan,token).first():null;
- if(!owner)throw new ApiError(403,'请重新填写姓名进入 batch2。');const isAdmin=memberFor(owner.display_name)?.role==='admin';
+ if(!owner)throw new ApiError(403,'请重新填写姓名进入 batch2。');const isAdmin=canonicalOwner(owner)?.role==='admin';
  if(path.startsWith('/api/admin/')&&!isAdmin)throw new ApiError(403,'需要管理员权限。');
  if(path==='/api/lease'&&request.method==='GET'){if(url.searchParams.get('claim_id')!==owner.claim_id)throw new ApiError(410,'任务登记已变化。');return mapped2(owner);}
  if(path==='/api/annotations'&&request.method==='GET')return {records:(await env.DB.prepare('SELECT * FROM batch2_annotations WHERE annotator_id=?1 ORDER BY record_id').bind(owner.annotator_id).all()).results.map(cloudRow)};
@@ -283,7 +284,7 @@ async function batch2Route(request,env,url){
    const normalized=classifyApproval(a,t.issues),payload=stableStringify(normalized),hash=await digest(payload),key=JSON.stringify([owner.annotator_id,a.record_id]),time=new Date().toISOString(),raw=stableStringify(a);
    const result=await env.DB.batch([
     env.DB.prepare('INSERT OR IGNORE INTO batch2_annotation_history(event_id,record_key,annotator_id,payload,created_at) VALUES(?1,?2,?3,?4,?5)').bind(await digest(key+raw),key,owner.annotator_id,raw,time),
-    env.DB.prepare('INSERT INTO batch2_annotations(record_key,annotator_id,annotator_name,record_id,payload,content_hash,version,saved_at) VALUES(?1,?2,?3,?4,?5,?6,1,?7) ON CONFLICT(record_key) DO UPDATE SET payload=excluded.payload,content_hash=excluded.content_hash,annotator_name=excluded.annotator_name,version=batch2_annotations.version+1,saved_at=excluded.saved_at WHERE batch2_annotations.version=?8 AND batch2_annotations.content_hash<>excluded.content_hash').bind(key,owner.annotator_id,memberFor(owner.display_name).name,a.record_id,payload,hash,time,entry.base_version??-1),
+    env.DB.prepare('INSERT INTO batch2_annotations(record_key,annotator_id,annotator_name,record_id,payload,content_hash,version,saved_at) VALUES(?1,?2,?3,?4,?5,?6,1,?7) ON CONFLICT(record_key) DO UPDATE SET payload=excluded.payload,content_hash=excluded.content_hash,annotator_name=excluded.annotator_name,version=batch2_annotations.version+1,saved_at=excluded.saved_at WHERE batch2_annotations.version=?8 AND batch2_annotations.content_hash<>excluded.content_hash').bind(key,owner.annotator_id,canonicalOwner(owner).name,a.record_id,payload,hash,time,entry.base_version??-1),
     env.DB.prepare('SELECT * FROM batch2_annotations WHERE record_key=?1').bind(key)
    ]);const row=result[2].results[0];if(row.content_hash===hash)saved.push({record_id:a.record_id,version:row.version});else conflicts.push(cloudRow(row));
   }return {saved,conflicts};

@@ -1,8 +1,8 @@
-import {RegistryClient} from './registry-client.js';
-import {REGISTRY_API} from './registry-config.js';
-import {loadDataset} from './dataset-loader.js';
-import {buildTeamProgress} from './team-progress.js';
-import {escapeHTML as h} from './core.js';
+import {RegistryClient} from './registry-client.js?v=29-identities';
+import {REGISTRY_API} from './registry-config.js?v=29-identities';
+import {loadDataset} from './dataset-loader.js?v=29-identities';
+import {buildTeamProgress} from './team-progress.js?v=29-identities';
+import {escapeHTML as h} from './core.js?v=29-identities';
 const $=s=>document.querySelector(s),registry=new RegistryClient(REGISTRY_API);let data,tasks=[];
 async function refresh(){const [claims,records]=await Promise.all([registry.list(),registry.allAnnotations()]);const rows=buildTeamProgress(tasks,claims.claims,records);data={batch:'batch2',generated_at:new Date().toISOString(),total:tasks.length,rows,records};$('#quality-total').textContent='已提交 '+rows.reduce((n,r)=>n+r.submitted,0)+' / '+tasks.length;$('#quality-rows').innerHTML=rows.map(r=>`<tr><td>${h(r.name)}</td><td>${r.submitted} / ${r.assigned}</td><td>${r.pass_direct}</td><td>${r.pass_modified}</td><td>${r.reject_no_clear_issue}</td><td>${r.reject_poor_quality}</td><td>${r.remaining}</td></tr>`).join('');}
 async function run(action){try{$('#quality-error').hidden=true;await action();}catch(e){$('#quality-error').textContent=e.message;$('#quality-error').hidden=false;}}

@@ -1,6 +1,6 @@
-import {buildDetailedAnalysis} from './detailed-analysis.js?v=28-shihua';
-import {groupAuditBySource} from './source-statistics.js?v=28-shihua';
-import {escapeHTML as h} from './core.js?v=28-shihua';
+import {buildDetailedAnalysis} from './detailed-analysis.js?v=29-identities';
+import {groupAuditBySource} from './source-statistics.js?v=29-identities';
+import {escapeHTML as h} from './core.js?v=29-identities';
 const $=s=>document.querySelector(s),pct=n=>n==null?'—':(100*n).toFixed(1)+'%';let report,source,data;
 const labels={pass:'确认通过',reject:'审核拒绝',edit:'待改卡片',unsure:'待定',stale:'待重审',unreviewed:'未复核'};
 function bar(label,n,total,color){return `<div class="analysis-bar"><span>${h(label)}</span><div><i style="width:${total?Math.min(100,n/total*100):0}%;background:${color}"></i></div><b>${n}</b></div>`;}

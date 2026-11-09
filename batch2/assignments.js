@@ -1,4 +1,4 @@
-import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=28-shihua';
+import {PARTICIPANT_COUNT,ASSIGNMENT_PLAN} from './participants.js?v=29-identities';
 export {PARTICIPANT_COUNT,ASSIGNMENT_PLAN};
 export function validPerson(value){const number=Number(value);return /^\d+$/.test(String(value))&&Number.isInteger(number)&&number>=1&&number<=PARTICIPANT_COUNT?number:null;}
 export function assignedTasks(tasks,person=null){return person===null?tasks:tasks.filter((task,index)=>(task.batch2_assignee_slot??index%9+1)===person);}

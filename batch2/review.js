@@ -1,9 +1,9 @@
-import {RegistryClient} from './registry-client.js?v=28-shihua';
-import {REGISTRY_API} from './registry-config.js?v=28-shihua';
-import {escapeHTML as h,shortId,emptyIssue,validateAnnotation} from './core.js?v=28-shihua';
-import {compareApproval,stableStringify} from './approval.js?v=28-shihua';
-import {VideoDelivery} from './video-delivery.js?v=28-shihua';
-import {SegmentPlayer} from './segment-player.js?v=28-shihua';
+import {RegistryClient} from './registry-client.js?v=29-identities';
+import {REGISTRY_API} from './registry-config.js?v=29-identities';
+import {escapeHTML as h,shortId,emptyIssue,validateAnnotation} from './core.js?v=29-identities';
+import {compareApproval,stableStringify} from './approval.js?v=29-identities';
+import {VideoDelivery} from './video-delivery.js?v=29-identities';
+import {SegmentPlayer} from './segment-player.js?v=29-identities';
 const $=s=>document.querySelector(s),registry=new RegistryClient(REGISTRY_API);
 const labels={pass:'确认通过',pass_modified:'修改后通过',reject_no_clear_issue:'拒绝：无明确问题',reject_poor_quality:'拒绝：质量差'};
 let tasks=[],selected=null,identity=null,campaign=null,local={},versions={},saving=null,timer=null,ready=false;

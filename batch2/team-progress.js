@@ -1,18 +1,18 @@
-import {PARTICIPANTS,participantFor} from './participants.js?v=28-shihua';
-import {assignedTasks} from './assignments.js?v=28-shihua';
-import {classifyApproval,outcome} from './approval.js?v=28-shihua';
-import {seedIssues} from './core.js?v=28-shihua';
+import {PARTICIPANTS,participantFor} from './participants.js?v=29-identities';
+import {assignedTasks} from './assignments.js?v=29-identities';
+import {classifyApproval,outcome} from './approval.js?v=29-identities';
+import {seedIssues} from './core.js?v=29-identities';
 
 // Read-only totals: current assignments and historical records are kept separate.
 export function buildTeamProgress(tasks,claims,records){
  const taskById=new Map(tasks.map(task=>[task.record_id,task]));
  const key=name=>participantFor(name)?.name??name;
- const people=PARTICIPANTS.map(member=>claims.find(c=>key(c.display_name)===member.name)??{display_name:member.name,slot:member.person,role:member.role,claim_id:null});
- for(const claim of claims)if(!people.includes(claim))people.push(claim);
+ const people=PARTICIPANTS.map(member=>({...claims.find(c=>c.slot===member.person),display_name:member.name,slot:member.person,role:member.role}));
+ for(const claim of claims)if(!PARTICIPANTS.some(p=>p.person===claim.slot))people.push(claim);
  const occupied=new Set(claims.filter(c=>c.claim_id).map(c=>c.slot));
  const rows=people.map(claim=>({name:key(claim.display_name),role:claim.role,registered:!!claim.claim_id,owner:claim.annotator_id,ids:new Set(assignedTasks(tasks,(!claim.claim_id&&occupied.has(claim.slot)?0:claim.slot)??0).map(t=>t.record_id)),records:new Map()}));
  for(const record of records){
-  const person=rows.find(p=>p.owner&&p.owner===record.annotator.id)??rows.find(p=>p.name===key(record.annotator.name));
+  const person=rows.find(p=>p.owner&&p.owner===record.annotator.id)??(!record.annotator.id?rows.find(p=>p.name===key(record.annotator.name)):null);
   if(!person||!taskById.has(record.annotation.record_id))continue;
   const old=person.records.get(record.annotation.record_id);
   if(!old||(record.saved_at??'')>(old.saved_at??'')||record.saved_at===old.saved_at&&record.version>old.version)person.records.set(record.annotation.record_id,record);
