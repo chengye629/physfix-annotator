@@ -1,3 +1,4 @@
+import {BATCH2_REVIEW_CAMPAIGN,BATCH2_REVIEW_TASKS} from './batch2-review-campaign.js';
 import {CARD_RESOLUTIONS} from './card-resolutions.js';
 import {BATCH2_DATA} from './batch2-data.js';
 import {PHYSICS_EVIDENCE} from './physics-evidence.js';
@@ -209,23 +210,24 @@ async function publishedDemos(env){
 const reviewTaskById=new Map(REVIEW_TASKS.map(task=>[task.record_id,task]));
 const reviewKey=id=>JSON.stringify([REVIEW_CAMPAIGN.id,id]);
 const reviewRow=row=>row?{payload:JSON.parse(row.payload),version:row.version,saved_at:row.saved_at,reviewer:row.reviewer_name}:null;
-async function adminReviewRoute(request,env,owner,url){
+async function adminReviewRoute(request,env,owner,url,context={campaign:REVIEW_CAMPAIGN,tasks:REVIEW_TASKS,sourceTable:'annotations'}){
+ const {campaign,tasks,sourceTable}=context;const reviewTaskById=new Map(tasks.map(t=>[t.record_id,t]));
  const path=url.pathname;
  if(path==='/api/admin/reviews'&&request.method==='GET'){
-  const stored=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(REVIEW_CAMPAIGN.id).all()).results;
+  const stored=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(campaign.id).all()).results;
   const sources=[];
-  for(let start=0;start<REVIEW_TASKS.length;start+=80){const page=REVIEW_TASKS.slice(start,start+80);sources.push(...(await env.DB.prepare('SELECT * FROM annotations WHERE record_id IN ('+page.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...page.map(t=>t.record_id)).all()).results);}
-  const tasks=REVIEW_TASKS.map(t=>{const source=sources.find(r=>r.record_id===t.record_id&&r.annotator_id===t.original_annotator.id);return {record_id:t.record_id,assignee:t.assignee,audit:t.audit,audit_source_version:t.audit_source_version,source_version:source?.version??t.audit_source_version,original_annotation:source?JSON.parse(source.payload):t.snapshot_annotation,review:reviewRow(stored.find(row=>row.record_id===t.record_id))};});
-  return {campaign:REVIEW_CAMPAIGN,tasks};
+  for(let start=0;start<tasks.length;start+=80){const page=tasks.slice(start,start+80);sources.push(...(await env.DB.prepare('SELECT * FROM '+sourceTable+' WHERE record_id IN ('+page.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...page.map(t=>t.record_id)).all()).results);}
+  const listedTasks=tasks.map(t=>{const source=sources.find(r=>r.record_id===t.record_id&&r.annotator_id===t.original_annotator.id);return {record_id:t.record_id,assignee:t.assignee,audit:t.audit,audit_source_version:t.audit_source_version,source_version:source?.version??t.audit_source_version,original_annotation:source?JSON.parse(source.payload):t.snapshot_annotation,review:reviewRow(stored.find(row=>row.record_id===t.record_id))};});
+  return {campaign,tasks:listedTasks};
  }
  if(path==='/api/admin/reviews/save'&&request.method==='POST'){
   const data=await body(request,524288),a=data.review,task=reviewTaskById.get(a?.record_id);
-  if(data.campaign_id!==REVIEW_CAMPAIGN.id||!task)throw new ApiError(400,'未知复核任务。');
+  if(data.campaign_id!==campaign.id||!task)throw new ApiError(400,'未知复核任务。');
   if(task.assignee!==owner.display_name)throw new ApiError(403,'此任务分配给其他管理员，仅供查看。');
   if(!Number.isSafeInteger(data.base_version)||data.base_version<0)throw new ApiError(400,'复核版本无效。');
   if(!['draft','submitted'].includes(a.status)||!['','pass','pass_modified','reject_no_clear_issue','reject_poor_quality'].includes(a.decision)||!Array.isArray(a.issues)||a.issues.length>50||typeof a.note!=='string'||a.note.length>4000||!Number.isSafeInteger(a.source_version)||typeof a.updated_at!=='string'||!Number.isFinite(Date.parse(a.updated_at)))throw new ApiError(400,'复核内容格式无效。');
   for(const c of a.issues)if(!c||typeof c.timestamp!=='string'||c.timestamp.length>80||typeof c.problem!=='string'||c.problem.length>4000||typeof c.expected!=='string'||c.expected.length>4000)throw new ApiError(400,'卡片格式无效。');
-  const source=await env.DB.prepare('SELECT payload,version FROM annotations WHERE record_key=?1').bind(recordKey(task.original_annotator.id,a.record_id)).first();
+  const source=await env.DB.prepare('SELECT payload,version FROM '+sourceTable+' WHERE record_key=?1').bind(recordKey(task.original_annotator.id,a.record_id)).first();
   const sourceVersion=source?.version??task.audit_source_version,original=source?JSON.parse(source.payload):task.snapshot_annotation;
   if(a.status==='submitted'){
    if(!a.decision)throw new ApiError(400,'请选择复核结果。');
@@ -238,10 +240,10 @@ async function adminReviewRoute(request,env,owner,url){
    }
   }
   const clean={record_id:a.record_id,status:a.status,decision:a.decision,issues:a.issues.map(c=>({timestamp:c.timestamp,problem:c.problem,expected:c.expected})),note:a.note,source_version:a.source_version,updated_at:a.updated_at};
-  const payload=stableStringify(clean),key=reviewKey(a.record_id),time=new Date().toISOString(),eventId=await digest(key+payload);
+  const payload=stableStringify(clean),key=JSON.stringify([campaign.id,a.record_id]),time=new Date().toISOString(),eventId=await digest(key+payload);
   const results=await env.DB.batch([
    env.DB.prepare('INSERT OR IGNORE INTO admin_review_history(event_id,review_key,payload,created_at) VALUES(?1,?2,?3,?4)').bind(eventId,key,payload,time),
-   env.DB.prepare('INSERT INTO admin_reviews(review_key,campaign_id,record_id,reviewer_name,payload,version,saved_at) SELECT ?1,?2,?3,?4,?5,1,?6 WHERE ?7=0 OR EXISTS(SELECT 1 FROM admin_reviews WHERE review_key=?1) ON CONFLICT(review_key) DO UPDATE SET payload=excluded.payload,version=admin_reviews.version+1,saved_at=excluded.saved_at WHERE admin_reviews.version=?7 AND admin_reviews.payload<>excluded.payload').bind(key,REVIEW_CAMPAIGN.id,a.record_id,owner.display_name,payload,time,data.base_version),
+   env.DB.prepare('INSERT INTO admin_reviews(review_key,campaign_id,record_id,reviewer_name,payload,version,saved_at) SELECT ?1,?2,?3,?4,?5,1,?6 WHERE ?7=0 OR EXISTS(SELECT 1 FROM admin_reviews WHERE review_key=?1) ON CONFLICT(review_key) DO UPDATE SET payload=excluded.payload,version=admin_reviews.version+1,saved_at=excluded.saved_at WHERE admin_reviews.version=?7 AND admin_reviews.payload<>excluded.payload').bind(key,campaign.id,a.record_id,owner.display_name,payload,time,data.base_version),
    env.DB.prepare('SELECT * FROM admin_reviews WHERE review_key=?1').bind(key)
   ]);
   const row=results[2].results[0];if(!row||row.payload!==payload)throw new ApiError(409,'另一窗口已保存新版本，请刷新后选择要保留的内容。','review_conflict');
@@ -298,13 +300,13 @@ async function batch2Route(request,env,url){
   const rows=(await env.DB.prepare('SELECT * FROM batch2_annotations ORDER BY annotator_name,record_id LIMIT ?1 OFFSET ?2').bind(limit+1,cursor).all()).results;return {records:rows.slice(0,limit).map(cloudRow),next_cursor:rows.length>limit?cursor+limit:null};
  }
  if(path==='/api/admin/quality'&&request.method==='GET'){
-  const rows=(await env.DB.prepare('SELECT * FROM batch2_annotations').all()).results.map(cloudRow);return {...buildQualityStatistics(rows,[],[],[],parts.map(p=>p.name)),batch:'batch2',physics_evidence:{}};
+  const rows=(await env.DB.prepare('SELECT * FROM batch2_annotations').all()).results.map(cloudRow),reviews=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(BATCH2_REVIEW_CAMPAIGN.id).all()).results;return {...buildQualityStatistics(rows,[],BATCH2_REVIEW_TASKS,reviews,parts.map(p=>p.name)),batch:'batch2',physics_evidence:{}};
  }
  if(path==='/api/examples'&&request.method==='GET'){
   let rows=(await env.DB.prepare('SELECT * FROM batch2_annotations ORDER BY saved_at DESC').all()).results.filter(r=>memberFor(r.annotator_name)?.role==='admin'&&JSON.parse(r.payload).status==='submitted');const admins=parts.filter(p=>p.role==='admin').map(p=>({name:p.name,total:rows.filter(r=>r.annotator_name===p.name).length,pass_direct:rows.filter(r=>r.annotator_name===p.name&&outcome(JSON.parse(r.payload))==='pass').length,pass_modified:rows.filter(r=>r.annotator_name===p.name&&outcome(JSON.parse(r.payload))==='pass_modified').length}));
   const name=url.searchParams.get('name'),decision=url.searchParams.get('outcome');if(name)rows=rows.filter(r=>r.annotator_name===name);if(decision)rows=rows.filter(r=>outcome(JSON.parse(r.payload))===decision);const cursor=Number(url.searchParams.get('cursor')||0);if(!Number.isSafeInteger(cursor)||cursor<0)throw new ApiError(400,'分页参数无效。');return {admins,total:rows.length,records:rows.slice(cursor,cursor+50).map(cloudRow),next_cursor:cursor+50<rows.length?cursor+50:null};
  }
  if(path==='/api/admin/release'||path==='/api/admin/reassign')throw new ApiError(409,'batch2 使用固定任务分配，无需重置或转交。');
- if(path==='/api/admin/reviews'||path==='/api/admin/reviews/save')throw new ApiError(404,'batch2 尚未开始管理员复核。');
+ if(path==='/api/admin/reviews'||path==='/api/admin/reviews/save'){const target=new URL(url);target.pathname=path;return adminReviewRoute(request,env,{...owner,display_name:canonicalOwner(owner).name},target,{campaign:BATCH2_REVIEW_CAMPAIGN,tasks:BATCH2_REVIEW_TASKS,sourceTable:'batch2_annotations'});}
  throw new ApiError(404,'batch2 接口不存在。');
 }

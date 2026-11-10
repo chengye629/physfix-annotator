@@ -40,7 +40,7 @@ const segment=new SegmentPlayer(video,{onActiveChange:index=>{$$('.issue').forEa
 function draftStatus(){const a=active(),stage=annotationStage(a);document.getElementById('draft-status').dataset.status=a?.status||'draft';$('#draft-status').textContent=!storageAvailable?'请导出备份':a?.status==='submitted'?`已提交：${shortResults[outcome(a)]||''}`:stage==='draft'?'草稿已保存':'预标注';}
 function renderGroups(){
   for(const link of document.querySelectorAll('[data-batch1-link]'))link.hidden=!isAdmin();
-  $('#group-filter').hidden=person!==null;$('#merge-button').hidden=!isAdmin();$('#manage-button').hidden=!isAdmin();$('#team-progress-button').hidden=!isAdmin();$('#admin-review-button').hidden=true;$('#quality-button').hidden=!isAdmin();$('#copy-group-link').textContent='复制入口链接';
+  $('#group-filter').hidden=person!==null;$('#merge-button').hidden=!isAdmin();$('#manage-button').hidden=!isAdmin();$('#team-progress-button').hidden=!isAdmin();$('#admin-review-button').hidden=!isAdmin();$('#quality-button').hidden=!isAdmin();$('#copy-group-link').textContent='复制入口链接';
   if(person!==null){$('#group-filter').innerHTML='<option value="all">我的任务</option>';$('#group-filter').value='all';return;}
   const source=state.source_filter,all=groupTasks(tasks,'all',source);
   $('#group-filter').innerHTML='<option value="all">全部 '+all.length+' 条</option>'+Array.from({length:Math.ceil(tasks.length/GROUP_SIZE)},(_,i)=>({i,list:groupTasks(tasks,String(i),source)})).filter(v=>v.list.length).map(({i})=>`<option value="${i}">${i*GROUP_SIZE+1}–${Math.min((i+1)*GROUP_SIZE,tasks.length)}</option>`).join('');
@@ -200,6 +200,6 @@ async function init(){try{
 }catch(error){$('#entry-error').hidden=false;$('#entry-error').textContent=`加载失败：${error.message}`;}}
 init();
 
-$('#admin-review-button').onclick=()=>{watch.capture(true);persist();window.location.href='../review.html?v=18-review';};
+$('#admin-review-button').onclick=()=>{watch.capture(true);persist();window.location.href='./review.html?v=30-batch2-review';};
 
 $('#quality-button').onclick=()=>{watch.capture(true);persist();window.location.href='./quality.html?v=29-identities';};

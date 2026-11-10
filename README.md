@@ -91,3 +91,7 @@ npm test
 ~~~
 
 前端推送 main 后由 GitHub Pages 发布。后台源码在 backend/registry/，实际独立部署的源目录由 .openai/hosting.json 关联到原 Sites 项目；接口地址见 registry-config.js。数据库通过 Drizzle 追加迁移，旧迁移、已有登记和九人计划不变。
+
+## batch2 管理员复核
+
+[复核入口](https://chengye629.github.io/physfix-annotator/batch2/review.html)：2026-11-10 快照中已提交通过的 143 条，叶程 48、马思远 48、林炬乙 47，均不复核自己的原标注。复核草稿和提交自动保存到后台；复核结果与第一轮按不同 campaign 隔离，原始标注保持不变。
