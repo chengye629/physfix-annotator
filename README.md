@@ -95,3 +95,13 @@ npm test
 ## batch2 管理员复核
 
 [复核入口](https://chengye629.github.io/physfix-annotator/batch2/review.html)：2026-11-10 快照中已提交通过的 143 条，叶程 48、马思远 48、林炬乙 47，均不复核自己的原标注。复核草稿和提交自动保存到后台；复核结果与第一轮按不同 campaign 隔离，原始标注保持不变。
+
+## 模型结果可视化
+
+`results.html` 提供 Sample50 的原片/生成片对照、三种提示词切换、同步播放、来源与抽查状态筛选。batch1、batch2 管理员导航均提供“模型结果”入口。页面展示公开结果，可直接访问，不依赖标注后台。
+
+数据快照为 `data/model-results.json`：50 条源视频、150 个 Wan2.2 VACE Q8_0 结果；输出固定到 HF PR #5 的完整提交 `3f485b80b3af32a437dfc3c6375715f08d29e2b3`，不依赖 PR 是否已合并。所有原片镜像均匹配本次运行记录的 SHA-256。H3 尚未接入此快照；扩展时在 models 和对应 sample.results 中增加真实的发布记录，不将未接入视为生成失败。
+
+抽查状态按 record_id / model / prompt variant 分开，以 `physfix.model-inspection.v1` 保存在浏览器，可导出 JSON。它不写入人工标注表，也不等同物理修复质量评分。切换浏览器前请导出备份。
+
+验证：`node --test tests/model-results.test.mjs`。
