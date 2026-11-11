@@ -203,6 +203,6 @@ async function init(){try{
 }catch(error){$('#entry-error').hidden=false;$('#entry-error').textContent=`加载失败：${error.message}`;}}
 init();
 
-$('#admin-review-button').onclick=()=>{watch.capture(true);persist();window.location.href='./review.html?v=18-review';};
+$('#admin-review-button').onclick=()=>{watch.capture(true);persist();window.location.href='./batch2/review.html?name='+encodeURIComponent(registration.annotator.name);};
 
 $('#quality-button').onclick=()=>{watch.capture(true);persist();window.location.href='./quality.html';};

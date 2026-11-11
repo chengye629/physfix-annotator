@@ -85,4 +85,4 @@ for(const [id,step] of [['review-back',-1],['review-forward',1]])$('#'+id).oncli
 video.ontimeupdate=()=>$('#review-time').textContent=`${video.currentTime.toFixed(2)} / ${Number.isFinite(video.duration)?video.duration.toFixed(2):'—'} s`;
 window.addEventListener('online',()=>{if(ready)void flush();});setInterval(()=>{if(ready&&!document.hidden)void flush();},20000);
 window.addEventListener('beforeunload',e=>{if(ready&&Object.keys(local).length){persist();e.preventDefault();e.returnValue='';}});
-try{const name=JSON.parse(localStorage.getItem('physfix.workspace.batch2.v1')||'{}').annotator?.name;if(name){$('#review-name').value=name;void login(name);}}catch{}
+try{const name=new URLSearchParams(location.search).get('name')||JSON.parse(localStorage.getItem('physfix.workspace.batch2.v1')||'{}').annotator?.name;if(name){$('#review-name').value=name;void login(name);}}catch{}
