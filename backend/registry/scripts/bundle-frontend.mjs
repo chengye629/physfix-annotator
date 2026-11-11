@@ -6,6 +6,7 @@ const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=
 const files=(await readdir(front)).filter(name=>/\.(html|js|css|svg)$/.test(name)).sort();
 files.push('data/physfixbench_full.jsonl.gz','data/physfixbench_full.jsonl','data/video-manifest.json','data/dataset-manifest.json');
 files.push(...(await readdir(resolve(front,'batch2'))).filter(name=>/\.(html|js|css|svg)$/.test(name)).map(name=>'batch2/'+name));files.push('batch2/data/physfixbench_full.jsonl.gz','batch2/data/physfixbench_full.jsonl','batch2/data/video-manifest.json','batch2/data/dataset-manifest.json');
+try{await readFile(resolve(front,'data/model-results.json'));files.push('data/model-results.json');}catch{}
 const assets={};
 for(const name of files){
  let bytes=await readFile(resolve(front,name));
