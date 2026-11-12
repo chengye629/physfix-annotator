@@ -1,3 +1,4 @@
+import {BATCH1_REREVIEW_CAMPAIGN,BATCH1_REREVIEW_TASKS} from './batch1-rereview.js';
 import {BATCH2_REVIEW_CAMPAIGN,BATCH2_REVIEW_TASKS} from './batch2-review-campaign.js';
 import {CARD_RESOLUTIONS} from './card-resolutions.js';
 import {BATCH2_DATA} from './batch2-data.js';
@@ -68,6 +69,7 @@ async function handle(request,env){
  if(path==='/api/demos'&&request.method==='GET')return {data:await publishedDemos(env)};
  if(path==='/api/claim'&&request.method==='POST')return {data:await claim(request,env)};
  if(['/api/annotations','/api/annotations/sync','/api/examples','/api/admin/annotations'].includes(path)){const owner=await authorize(request,env,path==='/api/admin/annotations');return {data:await annotationRoute(request,env,owner,url)};}
+ if(['/api/admin/batch1-rereview','/api/admin/batch1-rereview/save'].includes(path)){const owner=await authorize(request,env,true),target=new URL(url);target.pathname=path.replace('/batch1-rereview','/reviews');return {data:await adminReviewRoute(request,env,owner,target,{campaign:BATCH1_REREVIEW_CAMPAIGN,tasks:BATCH1_REREVIEW_TASKS,sourceTable:'annotations',frozenSource:true,sharedReview:true})};}
  if(['/api/admin/reviews','/api/admin/reviews/save'].includes(path)){const owner=await authorize(request,env,true);return {data:await adminReviewRoute(request,env,owner,url)};}
  if(path==='/api/admin/quality'&&request.method==='GET'){
   await authorize(request,env,true);
@@ -216,18 +218,18 @@ async function adminReviewRoute(request,env,owner,url,context={campaign:REVIEW_C
  if(path==='/api/admin/reviews'&&request.method==='GET'){
   const stored=(await env.DB.prepare('SELECT * FROM admin_reviews WHERE campaign_id=?1').bind(campaign.id).all()).results;
   const sources=[];
-  for(let start=0;start<tasks.length;start+=80){const page=tasks.slice(start,start+80);sources.push(...(await env.DB.prepare('SELECT * FROM '+sourceTable+' WHERE record_id IN ('+page.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...page.map(t=>t.record_id)).all()).results);}
+  for(let start=0;!context.frozenSource&&start<tasks.length;start+=80){const page=tasks.slice(start,start+80);sources.push(...(await env.DB.prepare('SELECT * FROM '+sourceTable+' WHERE record_id IN ('+page.map((_,i)=>'?'+(i+1)).join(',')+')').bind(...page.map(t=>t.record_id)).all()).results);}
   const listedTasks=tasks.map(t=>{const source=sources.find(r=>r.record_id===t.record_id&&r.annotator_id===t.original_annotator.id);return {record_id:t.record_id,assignee:t.assignee,audit:t.audit,audit_source_version:t.audit_source_version,source_version:source?.version??t.audit_source_version,original_annotation:source?JSON.parse(source.payload):t.snapshot_annotation,review:reviewRow(stored.find(row=>row.record_id===t.record_id))};});
   return {campaign,tasks:listedTasks};
  }
  if(path==='/api/admin/reviews/save'&&request.method==='POST'){
   const data=await body(request,524288),a=data.review,task=reviewTaskById.get(a?.record_id);
   if(data.campaign_id!==campaign.id||!task)throw new ApiError(400,'未知复核任务。');
-  if(task.assignee!==owner.display_name)throw new ApiError(403,'此任务分配给其他管理员，仅供查看。');
+  if(!context.sharedReview&&task.assignee!==owner.display_name)throw new ApiError(403,'此任务分配给其他管理员，仅供查看。');
   if(!Number.isSafeInteger(data.base_version)||data.base_version<0)throw new ApiError(400,'复核版本无效。');
   if(!['draft','submitted'].includes(a.status)||!['','pass','pass_modified','reject_no_clear_issue','reject_poor_quality'].includes(a.decision)||!Array.isArray(a.issues)||a.issues.length>50||typeof a.note!=='string'||a.note.length>4000||!Number.isSafeInteger(a.source_version)||typeof a.updated_at!=='string'||!Number.isFinite(Date.parse(a.updated_at)))throw new ApiError(400,'复核内容格式无效。');
   for(const c of a.issues)if(!c||typeof c.timestamp!=='string'||c.timestamp.length>80||typeof c.problem!=='string'||c.problem.length>4000||typeof c.expected!=='string'||c.expected.length>4000)throw new ApiError(400,'卡片格式无效。');
-  const source=await env.DB.prepare('SELECT payload,version FROM '+sourceTable+' WHERE record_key=?1').bind(recordKey(task.original_annotator.id,a.record_id)).first();
+  const source=context.frozenSource?null:await env.DB.prepare('SELECT payload,version FROM '+sourceTable+' WHERE record_key=?1').bind(recordKey(task.original_annotator.id,a.record_id)).first();
   const sourceVersion=source?.version??task.audit_source_version,original=source?JSON.parse(source.payload):task.snapshot_annotation;
   if(a.status==='submitted'){
    if(!a.decision)throw new ApiError(400,'请选择复核结果。');

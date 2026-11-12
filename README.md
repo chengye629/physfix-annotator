@@ -105,3 +105,7 @@ npm test
 抽查状态按 record_id / model / prompt variant 分开，以 `physfix.model-inspection.v1` 保存在浏览器，可导出 JSON。它不写入人工标注表，也不等同物理修复质量评分。切换浏览器前请导出备份。
 
 验证：`node --test tests/model-results.test.mjs`。
+
+## batch1 保留集重新审核
+
+[重审页面](https://chengye629.github.io/physfix-annotator/batch1-rereview.html)：194 条既有保留记录、273 张最终卡片。仅三位管理员可访问和保存，所有管理员均可审阅全部记录。进度、版本和审核结果使用独立 campaign，旧标注、第一轮历史复核及 batch2 复核均保留。多人修改同一条时使用版本冲突提示。
