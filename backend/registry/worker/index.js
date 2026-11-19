@@ -1,3 +1,4 @@
+import {CURATION_CAMPAIGN,CURATION_TASKS} from './benchmark-curation.js';
 import {BATCH1_REREVIEW_CAMPAIGN,BATCH1_REREVIEW_TASKS} from './batch1-rereview.js';
 import {BATCH2_REVIEW_CAMPAIGN,BATCH2_REVIEW_TASKS} from './batch2-review-campaign.js';
 import {CARD_RESOLUTIONS} from './card-resolutions.js';
@@ -69,6 +70,15 @@ async function handle(request,env){
  if(path==='/api/demos'&&request.method==='GET')return {data:await publishedDemos(env)};
  if(path==='/api/claim'&&request.method==='POST')return {data:await claim(request,env)};
  if(['/api/annotations','/api/annotations/sync','/api/examples','/api/admin/annotations'].includes(path)){const owner=await authorize(request,env,path==='/api/admin/annotations');return {data:await annotationRoute(request,env,owner,url)};}
+ if(['/api/admin/benchmark-curation','/api/admin/benchmark-curation/save'].includes(path)){
+  const owner = await authorize(request, env, true);
+  const target = new URL(url);
+  target.pathname = path.replace('/benchmark-curation', '/reviews');
+  return {data: await adminReviewRoute(request, env, owner, target, {
+   campaign: CURATION_CAMPAIGN, tasks: CURATION_TASKS,
+   sourceTable: 'annotations', frozenSource: true, sharedReview: true
+  })};
+ }
  if(['/api/admin/batch1-rereview','/api/admin/batch1-rereview/save'].includes(path)){const owner=await authorize(request,env,true),target=new URL(url);target.pathname=path.replace('/batch1-rereview','/reviews');return {data:await adminReviewRoute(request,env,owner,target,{campaign:BATCH1_REREVIEW_CAMPAIGN,tasks:BATCH1_REREVIEW_TASKS,sourceTable:'annotations',frozenSource:true,sharedReview:true})};}
  if(['/api/admin/reviews','/api/admin/reviews/save'].includes(path)){const owner=await authorize(request,env,true);return {data:await adminReviewRoute(request,env,owner,url)};}
  if(path==='/api/admin/quality'&&request.method==='GET'){

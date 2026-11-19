@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <header><div class="top"><h1>PhysFixBench v0.2 筛选核对</h1><a href="https://huggingface.co/datasets/HuggingFriends/PhysFixBench/tree/54a8b9abcf9be3e60c6d1eb9baad61aafe160e8f/data/benchmark_v0_2" target="_blank" rel="noreferrer">HF 数据目录 ↗</a></div></header>
+  <header><div class="top"><h1>PhysFixBench v0.2 筛选核对</h1><div class="controls"><span>叶程</span><span id="decision-progress" role="status"></span><span id="sync-status" role="status">正在连接…</span><button id="retry-sync" type="button" hidden>重试同步</button><button id="export-decisions" type="button">导出 JSON</button></div></div></header>
   <div class="layout">
     <aside aria-label="待核对条目">
       <div class="tabs" aria-label="筛选类型">
@@ -24,6 +24,7 @@
         <button type="button" data-kind="held" aria-pressed="true">暂缓收录 9</button>
       </div>
       <input class="search" id="search" type="search" aria-label="搜索编号或关键词" placeholder="搜索编号或关键词">
+      <select id="decision-filter" aria-label="审核状态"><option value="all">全部</option><option value="pending">未提交</option><option value="done">已提交</option></select>
       <div id="queue" class="queue"></div>
     </aside>
     <main>
@@ -44,6 +45,7 @@
               <a id="original" target="_blank" rel="noreferrer">上游原视频 ↗</a>
             </div>
             <p class="status" id="video-status" role="status" hidden></p>
+            <section id="decision-panel" class="decision-panel" aria-label="我的判断"></section>
           </div>
           <div class="notes" id="notes"></div>
         </div>
@@ -65,7 +67,7 @@
 
     function match() {
       const query = $('search').value.trim().toLowerCase();
-      return items.filter(item => item.kind === kind && JSON.stringify(item).toLowerCase().includes(query));
+      return items.filter(item => item.kind === kind && JSON.stringify(item).toLowerCase().includes(query) && (!window.curationDecisionMatches || window.curationDecisionMatches(item)));
     }
     function showStatus(message = '') {
       $('video-status').textContent = message;
@@ -88,7 +90,7 @@
       $('queue').innerHTML = visible.map(item => `<button type="button" class="case" data-key="${escape(item.key)}" aria-current="${String(item.key === active?.key)}"><span>${escape(item.title)}</span><small>${escape(item.id)}${item.card ? ' · 卡片 ' + item.card : ''}</small></button>`).join('');
       $('no-results').hidden = !!active;
       $('detail').hidden = !active;
-      if (!active) { video.pause(); return; }
+      if (!active) { video.pause(); window.dispatchEvent(new Event('curation-case-change')); return; }
       const key = active.key;
       if (location.hash !== '#' + key) history.replaceState(null, '', '#' + key);
       $('case-title').textContent = `${active.id} · ${active.title}`;
@@ -108,6 +110,7 @@
         video.load();
         $('time').textContent = `0.00 / ${active.duration.toFixed(2)} s`;
       }
+      window.dispatchEvent(new Event('curation-case-change'));
     }
     function move(offset) {
       const visible = match();
@@ -152,5 +155,7 @@
     $('speed').addEventListener('change', () => { video.playbackRate = Number($('speed').value); });
     render();
   </script>
+  <link rel="stylesheet" href="./decisions-v1.css">
+  <script type="module" src="./decisions-v1.js"></script>
 </body>
 </html>
